@@ -1,0 +1,189 @@
+.adm-submenu-item-name-link .zr_paidaccess_menu_icon {
+    background: url('/local/modules/zr.paidaccess/install/assets/icon.svg') no-repeat center;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    width: 32px;
+    height: 17px;
+    margin-top: 6px;
+}
+
+/* Админ-форма (список шлюзов, редактирование) */
+
+.zr-paidaccess-admin .adm-detail-title {
+    background-color: #f5f9f9;
+    padding: 10px 15px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #dce7ed;
+    color: #4b6267;
+    font-size: 14px;
+}
+
+.zr-paidaccess-admin .adm-detail-content-item-block {
+    background-color: #fff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #dce7ed;
+    border-radius: 3px;
+}
+
+.zr-paidaccess-admin .edit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.zr-paidaccess-admin .adm-detail-content-cell-l {
+    color: #525355;
+    text-align: right;
+    vertical-align: top;
+    padding: 8px 10px 8px 0;
+    width: 40%;
+}
+
+.zr-paidaccess-admin .adm-detail-content-cell-r {
+    vertical-align: top;
+    padding: 8px 0 8px 10px;
+    width: 60%;
+}
+
+.adm-workarea .zr-paidaccess-admin input[type="text"],
+.adm-workarea .zr-paidaccess-admin input[type="number"],
+.zr-paidaccess-admin textarea,
+.zr-paidaccess-admin select.select-field {
+    width: 100%;
+    max-width: 500px;
+    padding: 6px 10px;
+    border: 1px solid #c6cdd3;
+    border-radius: 2px;
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    height: fit-content;
+}
+
+.zr-paidaccess-admin .th-table td {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.zr-paidaccess-admin .th-table hr {
+    border: none;
+    color: #dce7ed;
+    background-color: #dce7ed;
+    height: 1px;
+}
+
+.zr-paidaccess-admin span.required {
+    color: #c00;
+}
+
+.zr-paidaccess-admin .status-container {
+    display: inline-block;
+}
+
+.zr-paidaccess-admin .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.zr-paidaccess-admin .status-completed {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.zr-paidaccess-admin .status-progress {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.zr-paidaccess-admin .status-warning {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.zr-paidaccess-admin .status-danger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.zr-paidaccess-admin .status-info {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.zr-paidaccess-admin .status-muted {
+    background: #eceff1;
+    color: #546e7a;
+}
+
+.zr-paidaccess-admin .status-icon {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.zr-paidaccess-admin .adm-input-description {
+    color: #7c8994;
+    font-size: 12px;
+}
+
+.zr-paidaccess-audit-context {
+    max-width: 420px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.zr-paidaccess-audit-context__title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.zr-paidaccess-audit-context__facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    margin: 0 0 8px;
+}
+
+.zr-paidaccess-audit-context__facts dt {
+    margin: 0;
+    color: #7c8994;
+}
+
+.zr-paidaccess-audit-context__facts dd {
+    margin: 0;
+}
+
+.zr-paidaccess-audit-context__changes {
+    margin: 0 0 8px;
+    padding-left: 18px;
+}
+
+.zr-paidaccess-audit-context__details summary {
+    cursor: pointer;
+    color: #2067b0;
+}
+
+.zr-paidaccess-audit-context__json {
+    margin: 6px 0 0;
+    padding: 8px;
+    max-height: 220px;
+    overflow: auto;
+    background: #f5f7f8;
+    border: 1px solid #e0e4e8;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+}
+
+.zr-paidaccess-muted {
+    color: #9aa7b2;
+}

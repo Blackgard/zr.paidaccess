@@ -1,0 +1,23 @@
+{
+    "name": "zr/paidaccess",
+    "description": "Bitrix module: monthly subscription payments and access control",
+    "type": "bitrix-module",
+    "license": "proprietary",
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zr\\PaidAccess\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}

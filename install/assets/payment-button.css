@@ -1,0 +1,46 @@
+.zr-paidaccess-pay-action {
+    width: 100%;
+    margin: 0;
+}
+
+.zr-paidaccess-pay-btn--tbank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 20px;
+    background: #ffdd2d;
+    color: #1a1a1a;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    border: 1px solid #e5c400;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.zr-paidaccess-pay-btn--tbank:hover,
+.zr-paidaccess-pay-btn--tbank:focus {
+    background: #f5d020;
+    border-color: #d4b800;
+    color: #1a1a1a;
+    text-decoration: none;
+}
+
+.zr-paidaccess-pay-btn--tbank:active {
+    background: #ebc800;
+}
+
+.zr-paidaccess-pay-btn__logo {
+    flex-shrink: 0;
+    display: block;
+    width: 28px;
+    height: 28px;
+}
+
+.zr-paidaccess-pay-btn__text {
+    display: inline-block;
+}

@@ -1,0 +1,20 @@
+<?php
+$MESS['ZR_PAIDACCESS_IMPORT_TITLE'] = 'Импорт платёжных шлюзов';
+$MESS['ZR_PAIDACCESS_BACK_TO_LIST'] = 'К списку шлюзов';
+$MESS['ZR_PAIDACCESS_IMPORT_FILE'] = 'JSON-файл';
+$MESS['ZR_PAIDACCESS_IMPORT_MODE'] = 'Режим импорта';
+$MESS['ZR_PAIDACCESS_IMPORT_MODE_UPSERT'] = 'Создавать новые и обновлять по совпадению (provider + siteId + name)';
+$MESS['ZR_PAIDACCESS_IMPORT_MODE_CREATE'] = 'Только создавать новые';
+$MESS['ZR_PAIDACCESS_IMPORT_MODE_SKIP'] = 'Только новые (существующие пропускать)';
+$MESS['ZR_PAIDACCESS_IMPORT_PRESERVE_TEST'] = 'Статус теста';
+$MESS['ZR_PAIDACCESS_IMPORT_PRESERVE_TEST_LABEL'] = 'Сохранить testPassed из файла';
+$MESS['ZR_PAIDACCESS_IMPORT_NOTE'] = 'Файл содержит секретные ключи шлюзов (terminal, secret). Храните и передавайте его безопасно. '
+    . 'Формат: JSON с полем format = zr.paidaccess.gateways.';
+$MESS['ZR_PAIDACCESS_IMPORT_SUBMIT'] = 'Импортировать';
+$MESS['ZR_PAIDACCESS_IMPORT_FILE_ERROR'] = 'Не удалось загрузить файл.';
+$MESS['ZR_PAIDACCESS_IMPORT_SUCCESS'] = 'Импорт завершён.';
+$MESS['ZR_PAIDACCESS_IMPORT_PARTIAL'] = 'Импорт завершён с ошибками:';
+$MESS['ZR_PAIDACCESS_IMPORT_STATS'] = 'Результат';
+$MESS['ZR_PAIDACCESS_IMPORT_CREATED'] = 'создано';
+$MESS['ZR_PAIDACCESS_IMPORT_UPDATED'] = 'обновлено';
+$MESS['ZR_PAIDACCESS_IMPORT_SKIPPED'] = 'пропущено';

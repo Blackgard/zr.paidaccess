@@ -1,0 +1,19 @@
+<?php
+$MESS['ZR_PAIDACCESS_SUBSCRIBERS_TITLE'] = 'Подписчики';
+$MESS['ZR_PAIDACCESS_COL_ID'] = 'ID';
+$MESS['ZR_PAIDACCESS_COL_USER'] = 'Пользователь';
+$MESS['ZR_PAIDACCESS_COL_EMAIL'] = 'E-mail';
+$MESS['ZR_PAIDACCESS_COL_ACCESS'] = 'Доступ';
+$MESS['ZR_PAIDACCESS_COL_PAYMENT'] = 'Платёж за период';
+$MESS['ZR_PAIDACCESS_COL_PERIOD'] = 'Текущий период';
+$MESS['ZR_PAIDACCESS_COL_SUB_UNTIL'] = 'Подписка до';
+$MESS['ZR_PAIDACCESS_COL_LAST_PAYMENT'] = 'Платёж ID';
+$MESS['ZR_PAIDACCESS_FILTER_SCOPE'] = 'Охват';
+$MESS['ZR_PAIDACCESS_SCOPE_RESTRICTED'] = 'Группы из настроек модуля';
+$MESS['ZR_PAIDACCESS_SCOPE_ALL'] = 'Все активные пользователи';
+$MESS['ZR_PAIDACCESS_FILTER_LOGIN'] = 'Логин';
+$MESS['ZR_PAIDACCESS_FILTER_NAME'] = 'Имя / фамилия';
+$MESS['ZR_PAIDACCESS_FILTER_ACCESS'] = 'Статус доступа';
+$MESS['ZR_PAIDACCESS_ACTION_CREATE_PAYMENT'] = 'Создать платёж';
+$MESS['ZR_PAIDACCESS_ACTION_PAYMENTS'] = 'Все платежи пользователя';
+$MESS['ZR_PAIDACCESS_PAYMENT_NONE'] = '—';

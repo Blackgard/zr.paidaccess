@@ -1,0 +1,140 @@
+.zr-paidaccess-personal {
+    max-width: 560px;
+    padding: 24px;
+    border: 1px solid #e6e9ef;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.zr-paidaccess-personal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.zr-paidaccess-personal__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.zr-paidaccess-personal__facts {
+    margin: 0 0 20px;
+    display: grid;
+    gap: 12px;
+}
+
+.zr-paidaccess-personal__fact {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 8px;
+}
+
+.zr-paidaccess-personal__fact dt {
+    margin: 0;
+    color: #6b7280;
+}
+
+.zr-paidaccess-personal__fact dd {
+    margin: 0;
+    font-weight: 500;
+}
+
+.zr-paidaccess-personal__hint {
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.zr-paidaccess-personal__overdue {
+    color: #c0392b;
+}
+
+.zr-paidaccess-personal__payment {
+    padding-top: 16px;
+    border-top: 1px solid #eef1f5;
+}
+
+.zr-paidaccess-personal__amount {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.zr-paidaccess-personal__pay-widget,
+.zr-paidaccess-personal__qr img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+.zr-paidaccess-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.zr-paidaccess-badge--ok {
+    background: #e8f7ee;
+    color: #1f7a3f;
+}
+
+.zr-paidaccess-badge--pending {
+    background: #fff4e5;
+    color: #9a6700;
+}
+
+.zr-paidaccess-badge--debt {
+    background: #fdecea;
+    color: #b42318;
+}
+
+.zr-paidaccess-badge--muted,
+.zr-paidaccess-badge--default {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.zr-paidaccess-btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #2d6cdf;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.zr-paidaccess-error-box {
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #fdecea;
+    border: 1px solid #f5c6cb;
+}
+
+.zr-paidaccess-error-box__title {
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: #c0392b;
+}
+
+.zr-paidaccess-error-box__text {
+    margin: 0;
+    line-height: 1.5;
+    color: #7f2a22;
+}
+
+.zr-paidaccess-personal--error {
+    color: #7f2a22;
+}
+
+@media (max-width: 600px) {
+    .zr-paidaccess-personal__fact {
+        grid-template-columns: 1fr;
+    }
+}

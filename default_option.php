@@ -1,0 +1,28 @@
+<?php
+
+$zr_paidaccess_default_option = [
+    'MODULE_ACTIVE_s1' => 'Y',
+    'ACCESS_RESTRICTED_GROUPS_s1' => '2',
+    'ACCESS_BLOCK_TEMPLATE_s1' => 'template_need_paid.php',
+    'SUBSCRIPTION_AMOUNT_s1' => '1000',
+    'PAYMENT_DESCRIPTION_s1' => 'Ежемесячный взнос подписки — {SITE_NAME}',
+    'PAYMENT_WIDGET_MODE_s1' => 'qr_sbp',
+    'PAYMENT_PAGE_ERROR_TEXT_s1' => 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.',
+    'BILLING_PERIOD_MODE_s1' => 'calendar_month',
+    'BILLING_ANCHOR_SOURCE_s1' => 'registration',
+    'BILLING_FIXED_DAY_s1' => '1',
+    'BILLING_SHORT_MONTH_POLICY_s1' => 'last_day',
+    'BILLING_ENFORCE_ONE_PAYMENT_s1' => 'Y',
+    'BILLING_GRACE_DAYS_s1' => '0',
+    'PAYMENT_EMAIL_NOTIFY_s1' => 'Y',
+    'MAIL_NOTIFY_PAYMENT_FAILED_s1' => 'Y',
+    'MAIL_NOTIFY_SUBSCRIPTION_DEBT_s1' => 'Y',
+    'MAIL_NOTIFY_SUBSCRIPTION_EXPIRING_s1' => 'Y',
+    'MAIL_SUBSCRIPTION_EXPIRING_DAYS_s1' => '3',
+    'ERROR_NOTIFY_ENABLED_s1' => 'Y',
+    'ERROR_NOTIFY_EMAIL_s1' => '',
+    'LOGGING_ACTIVE_s1' => 'N',
+    'LOG_LEVEL_s1' => 'error',
+    'LOG_PATH_s1' => '/upload/logs/zr.paidaccess.log',
+    'GATEWAY_TEST_AMOUNT_s1' => '1',
+];

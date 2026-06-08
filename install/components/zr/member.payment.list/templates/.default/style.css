@@ -1,0 +1,82 @@
+.zr-paidaccess-members {
+    width: 100%;
+}
+
+.zr-paidaccess-members__title {
+    margin: 0 0 16px;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.zr-paidaccess-members__empty {
+    margin: 0;
+    color: #6b7280;
+}
+
+.zr-paidaccess-members__table-wrap {
+    overflow-x: auto;
+}
+
+.zr-paidaccess-members__table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.zr-paidaccess-members__table th,
+.zr-paidaccess-members__table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e6e9ef;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.zr-paidaccess-members__table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    background: #f8fafc;
+}
+
+.zr-paidaccess-members__table tr.zr-paidaccess-row--debt {
+    background: #fff5f5;
+}
+
+.zr-paidaccess-members__table tr.zr-paidaccess-row--debt td:first-child {
+    border-left: 3px solid #e74c3c;
+}
+
+.zr-paidaccess-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.zr-paidaccess-badge--ok {
+    background: #e8f7ee;
+    color: #1f7a3f;
+}
+
+.zr-paidaccess-badge--pending {
+    background: #fff4e5;
+    color: #9a6700;
+}
+
+.zr-paidaccess-badge--debt {
+    background: #fdecea;
+    color: #b42318;
+}
+
+.zr-paidaccess-badge--muted,
+.zr-paidaccess-badge--default {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.zr-paidaccess-members--error {
+    color: #7f2a22;
+}

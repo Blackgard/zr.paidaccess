@@ -1,0 +1,7 @@
+<svg width="30" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+    <rect width="20" height="20" rx="4" fill="#004EC4"/>
+    <g fill="white" font-family="Arial, sans-serif" font-weight="bold">
+        <text x="3" y="14" font-size="10">P</text>
+        <text x="10" y="14" font-size="10">A</text>
+    </g>
+</svg>
