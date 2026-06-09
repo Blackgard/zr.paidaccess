@@ -267,7 +267,7 @@ $arStructureOptions = [
             ],
             'NOTE_ERROR_NOTIFY' => [
                 'TYPE' => 'note',
-                'TEXT' => 'Ошибки и предупреждения также пишутся в журнал: '
+                'TEXT' => 'Каждая уникальная ошибка отправляется на email один раз. Повторные срабатывания пишутся только в журнал. '
                     . '<a href="/bitrix/admin/zr_paidaccess_logs.php">Настройки → Платёжный доступ → Журнал</a>. '
                     . 'Почтовое событие: ' . PaidAccessCore::MAIL_EVENT_ADMIN_ERROR . '.',
             ],

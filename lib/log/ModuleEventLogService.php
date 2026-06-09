@@ -4,6 +4,8 @@ namespace Zr\PaidAccess\Log;
 
 use Bitrix\Main\Mail\Event;
 use Zr\PaidAccess\Enum\ModuleLogLevel;
+use Zr\PaidAccess\Enum\NotificationType;
+use Zr\PaidAccess\Notification\NotificationLogRepository;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Tables\EventLogTable;
 use Zr\PaidAccess\Tools\Logger;
@@ -13,6 +15,14 @@ use Zr\PaidAccess\Tools\Logger;
  */
 class ModuleEventLogService
 {
+    /** Ошибки инфраструктуры — одно письмо на сайт, без привязки к user/payment. */
+    private const GLOBAL_ADMIN_ERROR_CODES = [
+        'payment_page_module',
+        'payment_page_gateway',
+        'payment_page_prepare',
+        'webhook_gateway_unavailable',
+    ];
+
     public static function debug(
         string $code,
         string $message,
@@ -125,6 +135,16 @@ class ModuleEventLogService
             return;
         }
 
+        $contextKey = self::buildAdminErrorContextKey($code, $paymentId, $userId);
+
+        if (NotificationLogRepository::wasSent(
+            NotificationLogRepository::ADMIN_USER_ID,
+            NotificationType::ADMIN_ERROR,
+            $contextKey
+        )) {
+            return;
+        }
+
         Event::send([
             'EVENT_NAME' => PaidAccessCore::MAIL_EVENT_ADMIN_ERROR,
             'LID' => PaidAccessCore::normalizeSiteId($siteId),
@@ -138,5 +158,28 @@ class ModuleEventLogService
                 'DATE' => date('d.m.Y H:i:s'),
             ], $siteId),
         ]);
+
+        NotificationLogRepository::markSent(
+            NotificationLogRepository::ADMIN_USER_ID,
+            NotificationType::ADMIN_ERROR,
+            $contextKey
+        );
+    }
+
+    public static function buildAdminErrorContextKey(string $code, ?int $paymentId, ?int $userId): string
+    {
+        if (in_array($code, self::GLOBAL_ADMIN_ERROR_CODES, true)) {
+            return mb_substr($code, 0, 64);
+        }
+
+        if ($paymentId !== null && $paymentId > 0) {
+            return mb_substr($code . '_p' . $paymentId, 0, 64);
+        }
+
+        if ($userId !== null && $userId > 0) {
+            return mb_substr($code . '_u' . $userId, 0, 64);
+        }
+
+        return mb_substr($code, 0, 64);
     }
 }

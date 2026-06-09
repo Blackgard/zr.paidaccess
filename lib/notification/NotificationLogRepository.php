@@ -6,6 +6,9 @@ use Zr\PaidAccess\Tables\NotificationLogTable;
 
 class NotificationLogRepository
 {
+    /** Системный USER_ID для админских уведомлений (не привязан к пользователю сайта). */
+    public const ADMIN_USER_ID = 0;
+
     public static function wasSent(int $userId, string $notifyType, string $contextKey): bool
     {
         $row = NotificationLogTable::getList([
