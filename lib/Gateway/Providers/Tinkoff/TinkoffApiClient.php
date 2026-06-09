@@ -61,6 +61,11 @@ class TinkoffApiClient
         return $this->request('Cancel', $params);
     }
 
+    /**
+     * Проверка Token входящего webhook.
+     *
+     * @see https://developer.tbank.ru/eacq/intro/developer/notification#проверить-токен-уведомлений
+     */
     public function verifyNotificationToken(array $payload)
     {
         if (empty($payload['Token'])) {
@@ -68,16 +73,52 @@ class TinkoffApiClient
         }
 
         $received = (string)$payload['Token'];
+        $expected = $this->buildNotificationToken($payload);
+
+        return hash_equals($expected, $received);
+    }
+
+    /**
+     * Поля, участвующие в подписи webhook (для диагностики).
+     *
+     * @return list<string>
+     */
+    public function getNotificationTokenFieldNames(array $payload): array
+    {
+        $data = $this->normalizeNotificationPayload($payload);
+        ksort($data);
+
+        return array_keys($data);
+    }
+
+    public function buildNotificationToken(array $payload): string
+    {
+        return $this->buildToken($this->normalizeNotificationPayload($payload));
+    }
+
+    /**
+     * Поля для подписи webhook: корневые скаляры, без Token, без вложенных Data/Receipt, без null.
+     *
+     * @see https://developer.tbank.ru/eacq/intro/developer/notification#проверить-токен-уведомлений
+     *
+     * @return array<string, scalar>
+     */
+    private function normalizeNotificationPayload(array $payload): array
+    {
         $data = $payload;
         unset($data['Token']);
 
-        if (array_key_exists('Success', $data)) {
-            $data['Success'] = $data['Success'] ? 'true' : 'false';
+        foreach ($data as $key => $value) {
+            if ($value === null || is_array($value) || is_object($value)) {
+                unset($data[$key]);
+            }
         }
 
-        $expected = $this->buildToken($data);
+        if (array_key_exists('Success', $data)) {
+            $data['Success'] = filter_var($data['Success'], FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+        }
 
-        return hash_equals($expected, $received);
+        return $data;
     }
 
     private function request($method, array $params)
@@ -262,6 +303,11 @@ class TinkoffApiClient
         return mb_substr($snippet, 0, $maxLength) . '…';
     }
 
+    /**
+     * SHA-256 подпись исходящих запросов и webhook: корневые поля + Password, ksort, concat, hash.
+     *
+     * @see https://developer.tbank.ru/eacq/intro/developer/token
+     */
     public function buildToken(array $params)
     {
         $params['Password'] = html_entity_decode($this->secretKey, ENT_QUOTES, 'UTF-8');
@@ -269,10 +315,10 @@ class TinkoffApiClient
 
         $concat = '';
         foreach ($params as $key => $value) {
-            if ($key === 'Token' || is_array($value) || is_object($value)) {
+            if ($key === 'Token' || $value === null || is_array($value) || is_object($value)) {
                 continue;
             }
-            $concat .= $value;
+            $concat .= (string)$value;
         }
 
         return hash('sha256', $concat);

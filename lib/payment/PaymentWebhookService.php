@@ -3,10 +3,8 @@
 namespace Zr\PaidAccess\Payment;
 
 use Zr\PaidAccess\Enum\GatewayEventType;
-use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\GatewayFactory;
 use Zr\PaidAccess\Log\ModuleEventLogService;
-use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Gateway\Provider\GatewayProviderRegistry;
 use Zr\PaidAccess\Tools\RequestContext;
@@ -57,7 +55,11 @@ class PaymentWebhookService
         $result = $gateway->handleWebhook($payload);
 
         $orderId = $result->orderId;
-        $modulePayment = $orderId !== '' ? PaymentRepository::getByOrderId($orderId) : null;
+        $modulePayment = PaymentRepository::findForWebhook(
+            $orderId,
+            (string)($payload['PaymentId'] ?? $result->gatewayPaymentId),
+            (int)$gatewayId
+        );
         $modulePaymentId = is_array($modulePayment) ? (int)$modulePayment['ID'] : 0;
 
         GatewayTransactionRepository::log(
@@ -78,51 +80,38 @@ class PaymentWebhookService
             ModuleEventLogService::error(
                 'webhook_invalid',
                 $result->errorMessage ?: 'Invalid notification',
-                ['orderId' => $orderId, 'gatewayStatus' => $result->gatewayStatus],
+                [
+                    'orderId' => $orderId,
+                    'gatewayStatus' => $result->gatewayStatus,
+                    'gatewayId' => (int)$gatewayId,
+                    'payloadTerminalKey' => (string)($payload['TerminalKey'] ?? ''),
+                    'bankPaymentId' => (string)($payload['PaymentId'] ?? ''),
+                ],
                 $modulePayment ? (int)$modulePayment['ID'] : null,
                 $modulePayment ? (int)$modulePayment['USER_ID'] : null
             );
             self::respondError($result->errorMessage ?: 'Invalid notification', 403);
         }
 
-        if ($result->paid && $orderId !== '') {
-            PaymentCompletionService::completeByOrderId(
-                $orderId,
+        if ($result->paid && $modulePayment) {
+            PaymentCompletionService::completePayment(
+                (int)$modulePayment['ID'],
                 $result->gatewayPaymentId,
                 $result->gatewayStatus
             );
-        } elseif ($modulePayment && $orderId !== '' && !$result->paid) {
-            $internalStatus = (string)$result->internalStatus;
-            if ($internalStatus === PaymentStatus::CANCELLED
-                && (string)$modulePayment['STATUS'] !== PaymentStatus::CANCELLED
-            ) {
-                PaymentRepository::update((int)$modulePayment['ID'], [
-                    'STATUS' => PaymentStatus::CANCELLED,
-                    'DATE_PAID' => null,
-                ]);
-                ModuleEventLogService::info(
-                    'payment_webhook_cancelled',
-                    'Платёж отменён шлюзом: ' . $result->gatewayStatus,
-                    ['orderId' => $orderId, 'gatewayStatus' => $result->gatewayStatus],
-                    (int)$modulePayment['ID'],
-                    (int)$modulePayment['USER_ID']
-                );
-            } elseif ($internalStatus === PaymentStatus::FAILED
-                && (string)$modulePayment['STATUS'] === PaymentStatus::PENDING
-            ) {
-                PaymentRepository::update((int)$modulePayment['ID'], ['STATUS' => PaymentStatus::FAILED]);
-                ModuleEventLogService::warning(
-                    'payment_webhook_failed',
-                    'Платёж отклонён шлюзом: ' . $result->gatewayStatus,
-                    ['orderId' => $orderId, 'gatewayStatus' => $result->gatewayStatus],
-                    (int)$modulePayment['ID'],
-                    (int)$modulePayment['USER_ID']
-                );
-                SubscriptionNotificationService::onPaymentFailed(
-                    (int)$modulePayment['ID'],
-                    'Статус в банке: ' . $result->gatewayStatus
-                );
-            }
+        } elseif ($modulePayment && !$result->paid) {
+            PaymentWebhookStatusService::apply($modulePayment, $result);
+        } elseif ($result->valid && !$modulePayment && $orderId !== '') {
+            ModuleEventLogService::warning(
+                'payment_webhook_not_found',
+                'Webhook принят, но платёж не найден по OrderId/PaymentId',
+                [
+                    'orderId' => $orderId,
+                    'gatewayStatus' => $result->gatewayStatus,
+                    'bankPaymentId' => (string)($payload['PaymentId'] ?? ''),
+                    'gatewayId' => (int)$gatewayId,
+                ]
+            );
         }
 
         self::respondOk($providerMeta);

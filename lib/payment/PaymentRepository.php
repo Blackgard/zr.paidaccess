@@ -53,6 +53,43 @@ class PaymentRepository
         return is_array($row) ? $row : null;
     }
 
+    public static function findByGatewayPaymentId(string $gatewayPaymentId, ?int $gatewayId = null): ?array
+    {
+        $gatewayPaymentId = trim($gatewayPaymentId);
+        if ($gatewayPaymentId === '') {
+            return null;
+        }
+
+        $filter = ['=GATEWAY_PAYMENT_ID' => $gatewayPaymentId];
+        if ($gatewayId !== null && $gatewayId > 0) {
+            $filter['=GATEWAY_ID'] = $gatewayId;
+        }
+
+        $row = PaymentTable::getList([
+            'filter' => $filter,
+            'order' => ['ID' => 'DESC'],
+            'limit' => 1,
+        ])->fetch();
+
+        return is_array($row) ? $row : null;
+    }
+
+    /**
+     * Поиск платежа для webhook: OrderId из T-Bank, затем PaymentId шлюза.
+     */
+    public static function findForWebhook(string $orderId, string $gatewayPaymentId, ?int $gatewayId = null): ?array
+    {
+        $orderId = trim($orderId);
+        if ($orderId !== '') {
+            $byOrder = self::getByOrderId($orderId);
+            if ($byOrder) {
+                return $byOrder;
+            }
+        }
+
+        return self::findByGatewayPaymentId($gatewayPaymentId, $gatewayId);
+    }
+
     public static function findPendingForPeriod(int $userId, string $billingPeriod): ?array
     {
         $row = PaymentTable::getList([

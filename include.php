@@ -22,6 +22,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Payment\PaymentPageErrorRenderer' => 'lib/payment/PaymentPageErrorRenderer.php',
     'Zr\PaidAccess\Payment\PaymentCompletionService' => 'lib/payment/PaymentCompletionService.php',
     'Zr\PaidAccess\Payment\PaymentWebhookService' => 'lib/payment/PaymentWebhookService.php',
+    'Zr\PaidAccess\Payment\PaymentWebhookStatusService' => 'lib/payment/PaymentWebhookStatusService.php',
     'Zr\PaidAccess\Payment\PaymentCancellationService' => 'lib/payment/PaymentCancellationService.php',
     'Zr\PaidAccess\Gateway\GatewayFactory' => 'lib/Gateway/GatewayFactory.php',
     'Zr\PaidAccess\Gateway\GatewayRepository' => 'lib/Gateway/GatewayRepository.php',

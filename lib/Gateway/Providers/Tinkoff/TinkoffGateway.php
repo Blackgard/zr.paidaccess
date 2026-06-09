@@ -259,8 +259,30 @@ class TinkoffGateway implements PaymentGatewayInterface
 
     public function handleWebhook(array $payload): WebhookHandleResult
     {
+        $payloadTerminal = trim((string)($payload['TerminalKey'] ?? ''));
+        $configuredTerminal = $this->config->getTerminalKey();
+        if ($payloadTerminal !== '' && $configuredTerminal !== '' && !hash_equals($configuredTerminal, $payloadTerminal)) {
+            return new WebhookHandleResult(
+                false,
+                false,
+                '',
+                '',
+                '',
+                'TerminalKey в webhook (' . $payloadTerminal . ') не совпадает с настройкой шлюза (' . $configuredTerminal . ')'
+            );
+        }
+
         if (!$this->client->verifyNotificationToken($payload)) {
-            return new WebhookHandleResult(false, false, '', '', '', 'Invalid Token');
+            $fields = implode(', ', $this->client->getNotificationTokenFieldNames($payload));
+
+            return new WebhookHandleResult(
+                false,
+                false,
+                '',
+                '',
+                '',
+                'Invalid Token (поля подписи: ' . $fields . ')'
+            );
         }
 
         $orderId = (string)($payload['OrderId'] ?? '');
