@@ -106,7 +106,7 @@ class EventLogContextRenderer
             'remoteAddr',
         ];
 
-        if (str_starts_with($code, 'webhook_') || str_starts_with($code, 'payment_webhook_')) {
+        if (strpos($code, 'webhook_') === 0 || strpos($code, 'payment_webhook_') === 0) {
             return $webhookKeys;
         }
 
