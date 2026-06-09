@@ -245,7 +245,13 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 
 `id` — первичный ключ записи в `zr_paidaccess_gateway`.
 
-Обработчик: `PaymentWebhookService::processRequest()`. Ответ при успехе: `OK` (`text/plain`).
+Обработчик: `PaymentWebhookService::processRequest()`. Ответ при успехе: `OK` (`text/plain`), HTTP 200 — как в [документации по уведомлениям](https://developer.tbank.ru/eacq/intro/developer/notification).
+
+При одностадийной оплате T-Bank шлёт **два** webhook подряд: `AUTHORIZED` и `CONFIRMED` — это нормально.
+
+Проверка подписи webhook: `TinkoffApiClient::verifyNotificationToken()` — алгоритм из раздела «Проверить токен уведомлений» ([notification](https://developer.tbank.ru/eacq/intro/developer/notification), [token](https://developer.tbank.ru/eacq/intro/developer/token)). Юнит-тест сверяет хеш с официальным примером (`TinkoffApiClientTest::testBuildNotificationTokenMatchesTbankDocumentationExample`).
+
+Диагностика: `php local/modules/zr.paidaccess/tools/verify_webhook_token.php --gateway-id=1 --file=webhook.json`
 
 Документация T-Bank: [интеграция 1C-Bitrix](https://developer.tbank.ru/eacq/modules/1c-bitrix), [тестовая среда](https://developer.tbank.ru/eacq/intro/errors/test).
 

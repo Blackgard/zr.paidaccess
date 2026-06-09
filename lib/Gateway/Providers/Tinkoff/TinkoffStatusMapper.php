@@ -10,8 +10,9 @@ class TinkoffStatusMapper
     {
         switch (strtoupper($tinkoffStatus)) {
             case 'CONFIRMED':
-            case 'AUTHORIZED':
                 return PaymentStatus::PAID;
+            case 'AUTHORIZED':
+                return PaymentStatus::AUTHORIZED;
             case 'REJECTED':
                 return PaymentStatus::FAILED;
             case 'CANCELED':
@@ -24,8 +25,17 @@ class TinkoffStatusMapper
         }
     }
 
+    /**
+     * Завершать оплату и открывать доступ только по CONFIRMED (одностадийная оплата).
+     * AUTHORIZED — промежуточный статус, на него отвечаем OK без смены доступа.
+     */
     public static function isPaidStatus($tinkoffStatus)
     {
-        return in_array(strtoupper($tinkoffStatus), ['CONFIRMED', 'AUTHORIZED'], true);
+        return strtoupper((string)$tinkoffStatus) === 'CONFIRMED';
+    }
+
+    public static function isIntermediateStatus($tinkoffStatus): bool
+    {
+        return strtoupper((string)$tinkoffStatus) === 'AUTHORIZED';
     }
 }

@@ -91,6 +91,52 @@ final class TinkoffApiClientTest extends TestCase
         $this->assertFalse($client->verifyNotificationToken(['OrderId' => 'x']));
     }
 
+    public function testBuildNotificationTokenMatchesTbankDocumentationExample(): void
+    {
+        $client = new TinkoffApiClient('1234567890DEMO', '11111111111');
+
+        $token = $client->buildNotificationToken([
+            'TerminalKey' => '1234567890DEMO',
+            'OrderId' => '000000',
+            'Success' => true,
+            'Status' => 'AUTHORIZED',
+            'PaymentId' => '0000000',
+            'ErrorCode' => '0',
+            'Amount' => '1111',
+            'CardId' => '000000',
+            'Pan' => '200000******0000',
+            'ExpDate' => '1111',
+            'RebillId' => '000000',
+        ]);
+
+        $this->assertSame(
+            '1c0964277d0213349243065a0d5b838b8e90d2d25f740d0f2767836e710e80c8',
+            $token
+        );
+    }
+
+    public function testVerifyNotificationTokenIgnoresNullRootFields(): void
+    {
+        $client = new TinkoffApiClient('TerminalKey', 'SecretKey');
+
+        $base = [
+            'TerminalKey' => 'TerminalKey',
+            'OrderId' => 'PA-4-2026-06-08',
+            'Success' => 'true',
+            'Status' => 'CONFIRMED',
+            'PaymentId' => '8648510120',
+            'ErrorCode' => '0',
+            'Amount' => 140000,
+        ];
+
+        $payload = $base;
+        $payload['Success'] = true;
+        $payload['CardId'] = null;
+        $payload['Token'] = $client->buildNotificationToken($base);
+
+        $this->assertTrue($client->verifyNotificationToken($payload));
+    }
+
     public function testParseResponseExplainsTestApi403(): void
     {
         $html = '<html><head><title>403 Forbidden</title></head><body><center><h1>403 Forbidden</h1></center></body></html>';
@@ -100,6 +146,28 @@ final class TinkoffApiClientTest extends TestCase
         $this->assertFalse($result['Success']);
         $this->assertStringContainsString('whitelist', (string)$result['Message']);
         $this->assertStringContainsString('openapi@tbank.ru', (string)$result['Details']);
+    }
+
+    public function testVerifyNotificationTokenWithIntegerBankIds(): void
+    {
+        $client = new TinkoffApiClient('TerminalKey', 'SecretKey');
+
+        $payload = [
+            'TerminalKey' => 'TerminalKey',
+            'OrderId' => 'PA-6-2026-06-08',
+            'Success' => true,
+            'Status' => 'REFUNDED',
+            'PaymentId' => 8640548572,
+            'ErrorCode' => '0',
+            'Amount' => 140000,
+            'CardId' => 682206508,
+            'Pan' => '500000******0108',
+            'ExpDate' => '1230',
+        ];
+
+        $payload['Token'] = $client->buildNotificationToken($payload);
+
+        $this->assertTrue($client->verifyNotificationToken($payload));
     }
 
     public function testParseResponseReturnsJsonBodyForSuccessfulHttp(): void

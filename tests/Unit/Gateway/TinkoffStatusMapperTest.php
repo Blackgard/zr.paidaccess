@@ -22,7 +22,7 @@ final class TinkoffStatusMapperTest extends TestCase
     {
         return [
             'confirmed' => ['CONFIRMED', PaymentStatus::PAID],
-            'authorized' => ['AUTHORIZED', PaymentStatus::PAID],
+            'authorized' => ['AUTHORIZED', PaymentStatus::AUTHORIZED],
             'rejected' => ['REJECTED', PaymentStatus::FAILED],
             'canceled' => ['CANCELED', PaymentStatus::CANCELLED],
             'reversed' => ['REVERSED', PaymentStatus::CANCELLED],
@@ -44,7 +44,7 @@ final class TinkoffStatusMapperTest extends TestCase
     {
         return [
             'confirmed' => ['CONFIRMED', true],
-            'authorized' => ['AUTHORIZED', true],
+            'authorized' => ['AUTHORIZED', false],
             'rejected' => ['REJECTED', false],
         ];
     }

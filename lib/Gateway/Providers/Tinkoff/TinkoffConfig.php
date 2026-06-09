@@ -39,12 +39,12 @@ class TinkoffConfig
 
     public function getTerminalKey()
     {
-        return (string)$this->get('terminal_key', '');
+        return trim((string)$this->get('terminal_key', ''));
     }
 
     public function getSecretKey()
     {
-        return (string)$this->get('secret_key', '');
+        return trim((string)$this->get('secret_key', ''));
     }
 
     public function getEmailCompany()
