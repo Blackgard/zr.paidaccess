@@ -25,6 +25,7 @@ final class ModuleClassLoader
         'Zr\PaidAccess\Admin\GatewayImportExportService' => 'lib/Admin/GatewayImportExportService.php',
         'Zr\PaidAccess\Admin\AdminEntityLinkRenderer' => 'lib/Admin/AdminEntityLinkRenderer.php',
         'Zr\PaidAccess\Admin\AuditContextRenderer' => 'lib/Admin/AuditContextRenderer.php',
+        'Zr\PaidAccess\Admin\EventLogContextRenderer' => 'lib/Admin/EventLogContextRenderer.php',
         'Zr\PaidAccess\Admin\PaymentAdminService' => 'lib/Admin/PaymentAdminService.php',
         'Zr\PaidAccess\Log\AuditLogService' => 'lib/log/AuditLogService.php',
         'Zr\PaidAccess\Log\ModuleEventLogService' => 'lib/log/ModuleEventLogService.php',

@@ -12,6 +12,7 @@ use Zr\PaidAccess\Admin\AdminEntityLinkRenderer;
 use Zr\PaidAccess\Admin\AdminJsonResponse;
 use Zr\PaidAccess\Admin\AuditContextRenderer;
 use Zr\PaidAccess\Admin\EventLogAdminService;
+use Zr\PaidAccess\Admin\EventLogContextRenderer;
 use Zr\PaidAccess\Admin\GatewayTransactionAdminService;
 use Zr\PaidAccess\Admin\GatewayTransactionContextRenderer;
 use Zr\PaidAccess\Admin\LogCleanupAdminService;
@@ -223,6 +224,10 @@ foreach ($result['rows'] as $item) {
         }
         $columnsData['PAYMENT_ID'] = AdminEntityLinkRenderer::payment((int)($item['PAYMENT_ID'] ?? 0), LANGUAGE_ID);
         $columnsData['USER_ID'] = AdminEntityLinkRenderer::user((int)($item['USER_ID'] ?? 0), LANGUAGE_ID);
+        $columnsData['CONTEXT'] = EventLogContextRenderer::render(
+            (string)($item['CODE'] ?? ''),
+            (string)($item['CONTEXT'] ?? '')
+        );
     } else {
         $entityType = (string)($item['ENTITY_TYPE'] ?? '');
         $entityId = (int)($item['ENTITY_ID'] ?? 0);

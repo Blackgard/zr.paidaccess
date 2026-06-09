@@ -30,17 +30,6 @@ class PaymentWebhookService
             self::respondError('Invalid JSON', 400);
         }
 
-        ModuleEventLogService::info(
-            'webhook_received',
-            'Входящий webhook T-Bank',
-            array_merge($requestMeta, [
-                'gatewayId' => (int)$gatewayId,
-                'orderId' => (string)($payload['OrderId'] ?? ''),
-                'bankStatus' => (string)($payload['Status'] ?? ''),
-                'paymentId' => (string)($payload['PaymentId'] ?? ''),
-            ])
-        );
-
         try {
             $gateway = GatewayFactory::createById((int)$gatewayId);
         } catch (\Throwable $e) {
@@ -61,6 +50,19 @@ class PaymentWebhookService
             (int)$gatewayId
         );
         $modulePaymentId = is_array($modulePayment) ? (int)$modulePayment['ID'] : 0;
+
+        ModuleEventLogService::info(
+            'webhook_received',
+            'Входящий webhook T-Bank',
+            array_merge($requestMeta, [
+                'gatewayId' => (int)$gatewayId,
+                'orderId' => (string)($payload['OrderId'] ?? ''),
+                'bankStatus' => (string)($payload['Status'] ?? ''),
+                'paymentId' => (string)($payload['PaymentId'] ?? ''),
+            ]),
+            $modulePaymentId > 0 ? $modulePaymentId : null,
+            $modulePayment ? (int)$modulePayment['USER_ID'] : null
+        );
 
         GatewayTransactionRepository::log(
             $modulePaymentId,
