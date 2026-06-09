@@ -56,6 +56,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Install\GatewayTransactionInstaller' => 'lib/install/GatewayTransactionInstaller.php',
     'Zr\PaidAccess\Admin\AdminEntityLinkRenderer' => 'lib/Admin/AdminEntityLinkRenderer.php',
     'Zr\PaidAccess\Admin\AuditContextRenderer' => 'lib/Admin/AuditContextRenderer.php',
+    'Zr\PaidAccess\Admin\EventLogContextRenderer' => 'lib/Admin/EventLogContextRenderer.php',
     'Zr\PaidAccess\Admin\GatewayImportExportService' => 'lib/Admin/GatewayImportExportService.php',
     'Zr\PaidAccess\Enum\ModuleLogLevel' => 'lib/enum/ModuleLogLevel.php',
     'Zr\PaidAccess\Enum\NotificationType' => 'lib/enum/NotificationType.php',

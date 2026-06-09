@@ -144,17 +144,12 @@ class EventLogAdminService
             $dateCreate = $dateCreate->toString();
         }
 
-        $context = (string)($row['CONTEXT'] ?? '');
-        if ($context !== '' && strlen($context) > 200) {
-            $context = mb_substr($context, 0, 200) . '…';
-        }
-
         return [
             'ID' => (int)$row['ID'],
             'LEVEL' => (string)$row['LEVEL'],
             'CODE' => (string)$row['CODE'],
             'MESSAGE' => (string)$row['MESSAGE'],
-            'CONTEXT' => $context,
+            'CONTEXT' => (string)($row['CONTEXT'] ?? ''),
             'PAYMENT_ID' => (int)($row['PAYMENT_ID'] ?? 0),
             'USER_ID' => (int)($row['USER_ID'] ?? 0),
             'DATE_CREATE' => (string)$dateCreate,
