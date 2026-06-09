@@ -83,6 +83,18 @@ class ModuleEventLogService
 
         $contextJson = $context !== [] ? json_encode($context, JSON_UNESCAPED_UNICODE) : null;
 
+        $errorDedupeKey = null;
+        if ($level === ModuleLogLevel::ERROR) {
+            $errorDedupeKey = self::buildAdminErrorContextKey($code, $paymentId, $userId);
+            if (NotificationLogRepository::wasSent(
+                NotificationLogRepository::ADMIN_USER_ID,
+                NotificationType::EVENT_LOG,
+                $errorDedupeKey
+            )) {
+                return;
+            }
+        }
+
         if (PaidAccessCore::isLoggingActive($siteId) || $level === ModuleLogLevel::ERROR || $level === ModuleLogLevel::WARNING) {
             try {
                 EventLogTable::add([
@@ -114,6 +126,13 @@ class ModuleEventLogService
         }
 
         if ($level === ModuleLogLevel::ERROR) {
+            if ($errorDedupeKey !== null) {
+                NotificationLogRepository::markSent(
+                    NotificationLogRepository::ADMIN_USER_ID,
+                    NotificationType::EVENT_LOG,
+                    $errorDedupeKey
+                );
+            }
             self::notifyAdminOnError($code, $message, $contextJson, $paymentId, $userId, $siteId);
         }
     }

@@ -74,6 +74,22 @@ class EventLogAdminService
 
     /**
      * @param array<string, mixed> $filter
+     */
+    public static function clearEventLog(array $filter): int
+    {
+        return LogCleanupAdminService::deleteByFilter(EventLogTable::class, self::buildEventFilter($filter));
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     */
+    public static function clearAuditLog(array $filter): int
+    {
+        return LogCleanupAdminService::deleteByFilter(AuditLogTable::class, self::buildAuditFilter($filter));
+    }
+
+    /**
+     * @param array<string, mixed> $filter
      * @return array<string, mixed>
      */
     protected static function buildEventFilter(array $filter): array

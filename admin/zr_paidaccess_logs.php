@@ -9,12 +9,16 @@ use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\UI\Filter\Options as FilterOptions;
 use Bitrix\Main\UI\PageNavigation;
 use Zr\PaidAccess\Admin\AdminEntityLinkRenderer;
+use Zr\PaidAccess\Admin\AdminJsonResponse;
 use Zr\PaidAccess\Admin\AuditContextRenderer;
 use Zr\PaidAccess\Admin\EventLogAdminService;
 use Zr\PaidAccess\Admin\GatewayTransactionAdminService;
 use Zr\PaidAccess\Admin\GatewayTransactionContextRenderer;
+use Zr\PaidAccess\Admin\LogCleanupAdminService;
 use Zr\PaidAccess\Admin\StatusBadgeRenderer;
 use Zr\PaidAccess\Enum\ModuleLogLevel;
+use Zr\PaidAccess\Log\AuditLogService;
+use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\PaidAccessCore;
 
 $moduleId = PaidAccessCore::MODULE_ID;
@@ -108,6 +112,61 @@ if ($tab === 'gateway') {
 
 $filterOptions = new FilterOptions($gridId, $filterFields);
 $filterData = $filterOptions->getFilter($filterFields);
+
+if ($request->isPost() && (string)$request->getPost('action') === 'clear') {
+    if ($POST_RIGHT < 'W') {
+        AdminJsonResponse::send(['success' => false, 'error' => Loc::getMessage('ACCESS_DENIED')]);
+    }
+
+    if (!check_bitrix_sessid()) {
+        AdminJsonResponse::send(['success' => false, 'error' => 'Invalid sessid']);
+    }
+
+    $scope = (string)$request->getPost('scope');
+    $clearFilter = $scope === 'filter' ? $filterData : [];
+    $clearFile = $request->getPost('clear_file') === 'Y';
+
+    try {
+        $deleted = 0;
+        $auditEntityType = 'event_log';
+
+        if ($tab === 'audit') {
+            $deleted = EventLogAdminService::clearAuditLog($clearFilter);
+            ModuleEventLogService::info(
+                'audit_log_cleared',
+                Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_AUDIT', ['#COUNT#' => $deleted]),
+                ['scope' => $scope, 'deleted' => $deleted]
+            );
+        } elseif ($tab === 'gateway') {
+            $auditEntityType = 'gateway_log';
+            $deleted = GatewayTransactionAdminService::clearLog($clearFilter);
+        } else {
+            $deleted = EventLogAdminService::clearEventLog($clearFilter);
+            if ($clearFile) {
+                LogCleanupAdminService::clearFileLog();
+            }
+        }
+
+        if ($tab !== 'audit') {
+            AuditLogService::log(
+                $auditEntityType,
+                0,
+                'clear',
+                null,
+                json_encode([
+                    'deleted' => $deleted,
+                    'scope' => $scope,
+                    'clearFile' => $clearFile && $tab === 'events',
+                ], JSON_UNESCAPED_UNICODE),
+                Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_AUDIT', ['#COUNT#' => $deleted])
+            );
+        }
+
+        AdminJsonResponse::send(['success' => true, 'deleted' => $deleted]);
+    } catch (\Throwable $e) {
+        AdminJsonResponse::send(['success' => false, 'error' => $e->getMessage()]);
+    }
+}
 
 $nav = new PageNavigation($gridId);
 $nav->allowAllRecords(false)
@@ -227,6 +286,73 @@ $gatewayUrl = 'zr_paidaccess_logs.php?lang=' . urlencode($lang) . '&tab=gateway'
         <a href="<?= htmlspecialcharsbx($auditUrl) ?>"><?= Loc::getMessage('ZR_PAIDACCESS_LOGS_TAB_AUDIT') ?></a>
     <?php endif; ?>
 </p>
+<?php if ($POST_RIGHT >= 'W'): ?>
+    <p class="zr-paidaccess-log-actions">
+        <button type="button" class="adm-btn" id="zr_paidaccess_clear_all">
+            <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_ALL') ?>
+        </button>
+        <button type="button" class="adm-btn" id="zr_paidaccess_clear_filter">
+            <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_FILTER') ?>
+        </button>
+        <?php if ($tab === 'events'): ?>
+            <label class="zr-paidaccess-log-actions__file">
+                <input type="checkbox" id="zr_clear_file_log" value="Y">
+                <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_FILE') ?>
+            </label>
+        <?php endif; ?>
+    </p>
+    <script>
+        (function () {
+            var confirmAll = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_ALL', ['#COUNT#' => (int)$result['total']])) ?>';
+            var confirmFilter = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_FILTER', ['#COUNT#' => (int)$result['total']])) ?>';
+
+            function clearLog(scope, message) {
+                if (!confirm(message)) {
+                    return;
+                }
+
+                var clearFileEl = BX('zr_clear_file_log');
+                var clearFile = clearFileEl && clearFileEl.checked ? 'Y' : 'N';
+
+                BX.ajax({
+                    method: 'POST',
+                    url: window.location.href,
+                    dataType: 'json',
+                    data: {
+                        sessid: BX.bitrix_sessid(),
+                        action: 'clear',
+                        scope: scope,
+                        clear_file: clearFile
+                    },
+                    onsuccess: function (response) {
+                        if (response && response.success) {
+                            window.location.reload();
+                            return;
+                        }
+                        alert((response && response.error) ? response.error : 'Ошибка очистки журнала');
+                    },
+                    onfailure: function () {
+                        alert('Ошибка запроса');
+                    }
+                });
+            }
+
+            var btnAll = BX('zr_paidaccess_clear_all');
+            if (btnAll) {
+                BX.bind(btnAll, 'click', function () {
+                    clearLog('all', confirmAll);
+                });
+            }
+
+            var btnFilter = BX('zr_paidaccess_clear_filter');
+            if (btnFilter) {
+                BX.bind(btnFilter, 'click', function () {
+                    clearLog('filter', confirmFilter);
+                });
+            }
+        })();
+    </script>
+<?php endif; ?>
 <?php
 
 $APPLICATION->IncludeComponent(

@@ -68,6 +68,24 @@ class PaymentRepository
         return is_array($row) ? $row : null;
     }
 
+    /**
+     * Последний неуспешный платёж за период (без повторного Init при каждом заходе на сайт).
+     */
+    public static function findFailedForPeriod(int $userId, string $billingPeriod): ?array
+    {
+        $row = PaymentTable::getList([
+            'filter' => [
+                '=USER_ID' => $userId,
+                '=BILLING_PERIOD' => $billingPeriod,
+                '=STATUS' => PaymentStatus::FAILED,
+            ],
+            'order' => ['ID' => 'DESC'],
+            'limit' => 1,
+        ])->fetch();
+
+        return is_array($row) ? $row : null;
+    }
+
     public static function hasAnyPayment(int $userId): bool
     {
         if ($userId <= 0) {
