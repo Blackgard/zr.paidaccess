@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Zr\PaidAccess\Tests\Unit\Public;
+namespace Zr\PaidAccess\Tests\Unit\PublicUi;
 
 use PHPUnit\Framework\TestCase;
 use Zr\PaidAccess\Admin\SubscriberAdminService;
