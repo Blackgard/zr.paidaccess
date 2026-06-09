@@ -49,6 +49,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Log\ModuleEventLogService' => 'lib/log/ModuleEventLogService.php',
     'Zr\PaidAccess\Log\AuditLogService' => 'lib/log/AuditLogService.php',
     'Zr\PaidAccess\Admin\EventLogAdminService' => 'lib/Admin/EventLogAdminService.php',
+    'Zr\PaidAccess\Admin\LogCleanupAdminService' => 'lib/Admin/LogCleanupAdminService.php',
     'Zr\PaidAccess\Admin\GatewayTransactionAdminService' => 'lib/Admin/GatewayTransactionAdminService.php',
     'Zr\PaidAccess\Admin\GatewayTransactionContextRenderer' => 'lib/Admin/GatewayTransactionContextRenderer.php',
     'Zr\PaidAccess\Install\GatewayTransactionInstaller' => 'lib/install/GatewayTransactionInstaller.php',

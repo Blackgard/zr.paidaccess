@@ -41,6 +41,22 @@ class SubscriptionPaymentService
             return (int)$existing['ID'];
         }
 
+        $failed = PaymentRepository::findFailedForPeriod($userId, $billingPeriod);
+        if ($failed) {
+            $failedId = (int)$failed['ID'];
+            ModuleEventLogService::error(
+                'payment_period_init_blocked',
+                'Платёж за период уже завершился ошибкой; повторный Init не выполняется',
+                ['billingPeriod' => $billingPeriod],
+                $failedId,
+                $userId,
+                $siteId
+            );
+            throw new \RuntimeException(
+                'Не удалось создать платёж. Обратитесь к администратору сайта.'
+            );
+        }
+
         $amount = PaidAccessCore::getSubscriptionAmount($siteId);
         $currency = 'RUB';
         $description = PaidAccessCore::getPaymentDescription($siteId);
@@ -171,6 +187,10 @@ class SubscriptionPaymentService
 
         if (!$modulePayment || (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? '') !== '') {
             return;
+        }
+
+        if ((string)($modulePayment['STATUS'] ?? '') === PaymentStatus::FAILED) {
+            throw new \RuntimeException('Платёж помечен как неуспешный');
         }
 
         $gateway = self::resolveGateway($modulePayment, $siteId);

@@ -58,6 +58,14 @@ class GatewayTransactionAdminService
 
     /**
      * @param array<string, mixed> $filter
+     */
+    public static function clearLog(array $filter): int
+    {
+        return LogCleanupAdminService::deleteByFilter(GatewayTransactionTable::class, self::buildFilter($filter));
+    }
+
+    /**
+     * @param array<string, mixed> $filter
      * @return array<string, mixed>
      */
     protected static function buildFilter(array $filter): array

@@ -35,13 +35,6 @@ class PayBlockPageRenderer
                     $modulePaymentId = SubscriptionPaymentService::preparePayment($userId, $siteId);
                 } catch (\Throwable $e) {
                     $hasPaymentError = true;
-                    ModuleEventLogService::error(
-                        'payment_page_prepare',
-                        $e->getMessage(),
-                        ['trace' => $e->getFile() . ':' . $e->getLine()],
-                        null,
-                        $userId
-                    );
                 }
             }
         }

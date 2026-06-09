@@ -187,3 +187,18 @@
 .zr-paidaccess-muted {
     color: #9aa7b2;
 }
+
+.zr-paidaccess-log-actions {
+    margin: 0 0 12px;
+}
+
+.zr-paidaccess-log-actions .adm-btn {
+    margin-right: 8px;
+}
+
+.zr-paidaccess-log-actions__file {
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+    font-size: 13px;
+}
