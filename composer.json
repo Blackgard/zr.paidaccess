@@ -1,8 +1,15 @@
 {
     "name": "zr/paidaccess",
-    "description": "Bitrix module: monthly subscription payments and access control",
+    "description": "Bitrix module: monthly subscription payments, T-Bank acquirer, and paid site access control",
     "type": "bitrix-module",
-    "license": "proprietary",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexandr Drachenin",
+            "email": "alexdrachenin98@gmail.com",
+            "homepage": "https://alexandr-zr.ru/"
+        }
+    ],
     "require": {
         "php": ">=7.4"
     },
