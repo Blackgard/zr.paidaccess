@@ -62,6 +62,44 @@ class FundMovementRepository
     }
 
     /**
+     * Суммы движений участника в фонде (по полю USER_ID в ledger).
+     *
+     * @return array{income: float, expense: float, payment_count: int}
+     */
+    public static function sumByUser(int $fundId, int $userId): array
+    {
+        $income = 0.0;
+        $expense = 0.0;
+        $paymentCount = 0;
+
+        if ($fundId <= 0 || $userId <= 0) {
+            return ['income' => $income, 'expense' => $expense, 'payment_count' => $paymentCount];
+        }
+
+        $result = FundMovementTable::getList([
+            'filter' => [
+                '=FUND_ID' => $fundId,
+                '=USER_ID' => $userId,
+            ],
+            'select' => ['TYPE', 'AMOUNT', 'SOURCE'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            $amount = (float)($row['AMOUNT'] ?? 0);
+            if ((string)($row['TYPE'] ?? '') === FundMovementType::EXPENSE) {
+                $expense += $amount;
+            } else {
+                $income += $amount;
+                if ((string)($row['SOURCE'] ?? '') === FundMovementSource::PAYMENT) {
+                    $paymentCount++;
+                }
+            }
+        }
+
+        return ['income' => $income, 'expense' => $expense, 'payment_count' => $paymentCount];
+    }
+
+    /**
      * @return array{income: float, expense: float}
      */
     public static function sumByFund(int $fundId): array
@@ -158,6 +196,48 @@ class FundMovementRepository
     public static function getCount(array $filter): int
     {
         return (int)FundMovementTable::getCount($filter);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public static function listForUser(int $fundId, int $userId, int $limit = 0): array
+    {
+        if ($fundId <= 0 || $userId <= 0) {
+            return [];
+        }
+
+        $params = [
+            'filter' => [
+                '=FUND_ID' => $fundId,
+                '=USER_ID' => $userId,
+            ],
+            'select' => [
+                'ID',
+                'TYPE',
+                'AMOUNT',
+                'DESCRIPTION',
+                'SOURCE',
+                'ORDER_ID',
+                'EXTERNAL_REF',
+                'DATE_CREATE',
+                'USER_NAME' => 'USER.NAME',
+                'USER_LAST_NAME' => 'USER.LAST_NAME',
+            ],
+            'order' => ['DATE_CREATE' => 'DESC', 'ID' => 'DESC'],
+        ];
+
+        if ($limit > 0) {
+            $params['limit'] = $limit;
+        }
+
+        $items = [];
+        $result = FundMovementTable::getList($params);
+        while ($row = $result->fetch()) {
+            $items[] = self::formatWalletRow($row);
+        }
+
+        return $items;
     }
 
     /**

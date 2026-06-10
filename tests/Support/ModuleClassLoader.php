@@ -21,6 +21,7 @@ final class ModuleClassLoader
         'Zr\PaidAccess\Gateway\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',
         'Zr\PaidAccess\PublicUi\AccessStatusPresenter' => 'lib/Public/AccessStatusPresenter.php',
         'Zr\PaidAccess\PublicUi\FundWalletService' => 'lib/Public/FundWalletService.php',
+        'Zr\PaidAccess\PublicUi\FundContributorService' => 'lib/Public/FundContributorService.php',
         'Zr\PaidAccess\Fund\FundBalanceService' => 'lib/Fund/FundBalanceService.php',
         'Zr\PaidAccess\Fund\FundMovementService' => 'lib/Fund/FundMovementService.php',
         'Zr\PaidAccess\Enum\FundMovementType' => 'lib/enum/FundMovementType.php',
