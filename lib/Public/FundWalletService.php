@@ -10,7 +10,6 @@ use Zr\PaidAccess\PaidAccessCore;
 /**
  * Публичные данные кошелька учредительного фонда на базе ledger движений.
  */
-
 class FundWalletService
 {
     /**
