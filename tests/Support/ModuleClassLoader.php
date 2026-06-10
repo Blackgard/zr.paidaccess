@@ -20,6 +20,7 @@ final class ModuleClassLoader
         'Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffPaymentUrlResolver' => 'lib/Gateway/Providers/Tinkoff/TinkoffPaymentUrlResolver.php',
         'Zr\PaidAccess\Gateway\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',
         'Zr\PaidAccess\PublicUi\AccessStatusPresenter' => 'lib/Public/AccessStatusPresenter.php',
+        'Zr\PaidAccess\PublicUi\FundWalletService' => 'lib/Public/FundWalletService.php',
         'Zr\PaidAccess\Admin\SubscriberAdminService' => 'lib/Admin/SubscriberAdminService.php',
         'Zr\PaidAccess\Admin\StatusBadgeRenderer' => 'lib/Admin/StatusBadgeRenderer.php',
         'Zr\PaidAccess\Admin\GatewayImportExportService' => 'lib/Admin/GatewayImportExportService.php',

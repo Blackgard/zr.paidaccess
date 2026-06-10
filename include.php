@@ -80,6 +80,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\PublicUi\AccessStatusPresenter' => 'lib/Public/AccessStatusPresenter.php',
     'Zr\PaidAccess\PublicUi\PersonalSubscriptionViewService' => 'lib/Public/PersonalSubscriptionViewService.php',
     'Zr\PaidAccess\PublicUi\MemberListService' => 'lib/Public/MemberListService.php',
+    'Zr\PaidAccess\PublicUi\FundWalletService' => 'lib/Public/FundWalletService.php',
     'Zr\PaidAccess\Gateway\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',
     'Zr\PaidAccess\Enum\PaymentStatus' => 'lib/enum/PaymentStatus.php',
     'Zr\PaidAccess\Enum\SubscriptionStatus' => 'lib/enum/SubscriptionStatus.php',
