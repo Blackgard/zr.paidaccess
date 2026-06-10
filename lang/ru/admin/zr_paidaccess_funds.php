@@ -1,0 +1,15 @@
+<?php
+
+$MESS['ZR_PAIDACCESS_FUNDS_TITLE'] = 'Фонды';
+$MESS['ZR_PAIDACCESS_FUND_ADD'] = 'Добавить фонд';
+$MESS['ZR_PAIDACCESS_COL_ID'] = 'ID';
+$MESS['ZR_PAIDACCESS_COL_NAME'] = 'Название';
+$MESS['ZR_PAIDACCESS_COL_CODE'] = 'Код';
+$MESS['ZR_PAIDACCESS_COL_SITE'] = 'Сайт';
+$MESS['ZR_PAIDACCESS_COL_BALANCE'] = 'Баланс';
+$MESS['ZR_PAIDACCESS_COL_DEFAULT'] = 'По умолчанию';
+$MESS['ZR_PAIDACCESS_COL_ACTIVE'] = 'Активен';
+$MESS['ZR_PAIDACCESS_YES'] = 'Да';
+$MESS['ZR_PAIDACCESS_NO'] = 'Нет';
+$MESS['ZR_PAIDACCESS_ALL_SITES'] = 'Все сайты';
+$MESS['ZR_PAIDACCESS_ADD_MOVEMENT'] = 'Добавить движение';

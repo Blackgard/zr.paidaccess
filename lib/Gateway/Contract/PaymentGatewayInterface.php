@@ -13,7 +13,7 @@ use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
  */
 interface PaymentGatewayInterface
 {
-  public function getCode(): string;
+    public function getCode(): string;
 
     /**
      * Создание платежа в банке (Init / аналог).

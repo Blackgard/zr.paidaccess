@@ -7,9 +7,9 @@ use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
 use Zr\PaidAccess\Gateway\GatewayRepository;
+use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Tools\Logger;
-use Zr\PaidAccess\PaidAccessCore;
 
 class TinkoffGateway implements PaymentGatewayInterface
 {

@@ -73,6 +73,7 @@ class GatewayRepository
 
         try {
             GatewayFactory::createFromRow($gateway);
+
             return null;
         } catch (\Throwable $e) {
             return $e->getMessage();
@@ -257,6 +258,7 @@ class GatewayRepository
 
         try {
             $decoded = Json::decode($optionsJson);
+
             return is_array($decoded) ? $decoded : [];
         } catch (\Throwable $e) {
             return [];

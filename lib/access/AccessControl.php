@@ -10,8 +10,8 @@ namespace Zr\PaidAccess\Access;
 
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\PaymentRepository;
-use Zr\PaidAccess\Subscription\SubscriptionService;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
+use Zr\PaidAccess\Subscription\SubscriptionService;
 
 /**
  * Проверки доступа и подписки (без чтения опций напрямую — только через PaidAccessCore).
@@ -81,6 +81,7 @@ class AccessControl
         }
 
         $userGroupIds = array_map('intval', \CUser::GetUserGroup($userId));
+
         return count(array_intersect($userGroupIds, $restrictedGroupIds)) > 0;
     }
 }

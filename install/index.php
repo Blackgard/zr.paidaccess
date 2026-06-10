@@ -1,21 +1,20 @@
 <?php
 
 use Bitrix\Main\Application;
+use Bitrix\Main\Config\Option;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\ModuleManager;
-
-use Bitrix\Main\Config\Option;
-
-use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Access\AccessBlockHandler;
 use Zr\PaidAccess\Access\RegistrationPaymentHandler;
 use Zr\PaidAccess\Install\AgentInstaller;
+use Zr\PaidAccess\Install\FundInstaller;
 use Zr\PaidAccess\Install\GatewayInstaller;
+use Zr\PaidAccess\Install\GatewayTransactionInstaller;
 use Zr\PaidAccess\Install\LogInstaller;
 use Zr\PaidAccess\Install\MailInstaller;
-use Zr\PaidAccess\Install\GatewayTransactionInstaller;
 use Zr\PaidAccess\Install\PaymentInstaller;
+use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Tables\TableInstaller;
 
 Loc::loadMessages(__FILE__);
@@ -30,6 +29,9 @@ class zr_paidaccess extends CModule
         '/admin/zr_paidaccess_subscribers.php' => '/bitrix/admin/zr_paidaccess_subscribers.php',
         '/admin/zr_paidaccess_payments.php' => '/bitrix/admin/zr_paidaccess_payments.php',
         '/admin/zr_paidaccess_payment_edit.php' => '/bitrix/admin/zr_paidaccess_payment_edit.php',
+        '/admin/zr_paidaccess_funds.php' => '/bitrix/admin/zr_paidaccess_funds.php',
+        '/admin/zr_paidaccess_fund_edit.php' => '/bitrix/admin/zr_paidaccess_fund_edit.php',
+        '/admin/zr_paidaccess_fund_movement_edit.php' => '/bitrix/admin/zr_paidaccess_fund_movement_edit.php',
         '/admin/zr_paidaccess_gateways.php' => '/bitrix/admin/zr_paidaccess_gateways.php',
         '/admin/zr_paidaccess_gateway_edit.php' => '/bitrix/admin/zr_paidaccess_gateway_edit.php',
         '/admin/zr_paidaccess_gateway_import.php' => '/bitrix/admin/zr_paidaccess_gateway_import.php',
@@ -42,16 +44,15 @@ class zr_paidaccess extends CModule
 
     public function __construct()
     {
-        $arModuleVersion = array();
-        
+        $arModuleVersion = [];
+
         include __DIR__ . '/version.php';
 
-        if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion))
-        {
+        if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion)) {
             $this->MODULE_VERSION = $arModuleVersion['VERSION'];
             $this->MODULE_VERSION_DATE = $arModuleVersion['VERSION_DATE'];
         }
-        
+
         $this->MODULE_ID = $this->moduleId;
         $this->MODULE_NAME = Loc::getMessage('ZR_PAIDACCESS_MODULE_NAME');
         $this->MODULE_DESCRIPTION = Loc::getMessage('ZR_PAIDACCESS_MODULE_DESCRIPTION');
@@ -61,14 +62,14 @@ class zr_paidaccess extends CModule
         $this->MODULE_GROUP_RIGHTS = 'Y';
 
         $context = \Bitrix\Main\Application::getInstance()->getContext();
-		$server = $context->getServer();
-		$this->docRoot = $server->getDocumentRoot();
+        $server = $context->getServer();
+        $this->docRoot = $server->getDocumentRoot();
     }
 
     public function doInstall()
     {
         ModuleManager::registerModule($this->MODULE_ID);
-        
+
         $this->installDB();
         $this->installAccessTemplates();
         $this->installDefaultOptions();
@@ -78,6 +79,7 @@ class zr_paidaccess extends CModule
         GatewayInstaller::ensureSchema();
         PaymentInstaller::ensureSchema();
         GatewayTransactionInstaller::ensureSchema();
+        FundInstaller::ensureSchema();
         LogInstaller::ensureTables();
         AgentInstaller::ensureAgents();
         $this->InstallEvents();
@@ -88,18 +90,14 @@ class zr_paidaccess extends CModule
     {
         global $DOCUMENT_ROOT, $APPLICATION, $step;
 
-		$step = intval($step);
-		if($step<2)
-		{   
-			$APPLICATION->IncludeAdminFile(Loc::getMessage("ZR_PAIDACCESS_UNINSTALL_TITLE"), __DIR__ . "/unstep1.php");
-		}
-		elseif($step==2)
-		{
-            if (!$_REQUEST["savedata"])
-            {
+        $step = intval($step);
+        if ($step < 2) {
+            $APPLICATION->IncludeAdminFile(Loc::getMessage("ZR_PAIDACCESS_UNINSTALL_TITLE"), __DIR__ . "/unstep1.php");
+        } elseif ($step == 2) {
+            if (!$_REQUEST["savedata"]) {
                 $this->uninstallDB();
             }
-			
+
             AgentInstaller::uninstallAgents();
 
             $this->removeFiles();
@@ -112,7 +110,7 @@ class zr_paidaccess extends CModule
             ModuleManager::unRegisterModule($this->MODULE_ID);
 
             $APPLICATION->IncludeAdminFile(Loc::getMessage("ZR_PAIDACCESS_UNINSTALL_TITLE"), __DIR__ . "/unstep2.php");
-		}
+        }
     }
 
     public function InstallEvents()
@@ -223,12 +221,10 @@ class zr_paidaccess extends CModule
         $documentRoot = Application::getDocumentRoot();
         $errors       = [];
 
-        foreach ($this->files as $from => $to)
-        {
+        foreach ($this->files as $from => $to) {
             $sourcePath = __DIR__ . $from;
             $destPath = $documentRoot . $to;
-            if (!CopyDirFiles($sourcePath, $destPath, true, true))
-            {
+            if (!CopyDirFiles($sourcePath, $destPath, true, true)) {
                 $errors[] = $from . ':' . $to . '<br/>';
             }
         }
@@ -239,8 +235,7 @@ class zr_paidaccess extends CModule
     private function removeFiles(): void
     {
         $documentRoot = Application::getDocumentRoot();
-        foreach ($this->files as $from => $to)
-        {
+        foreach ($this->files as $from => $to) {
             DeleteDirFilesEx($documentRoot . $to);
         }
     }
@@ -262,7 +257,7 @@ class zr_paidaccess extends CModule
 
     /**
      * Получение описания уровней доступа
-     * 
+     *
      * @return array
      */
     public function GetModuleRightList(): array

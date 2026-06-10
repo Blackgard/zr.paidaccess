@@ -1,9 +1,8 @@
 <?php
 
-use Bitrix\Main\Loader;
 use Bitrix\Main\HttpApplication;
+use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
-
 use Zr\PaidAccess\Options\ModuleOptionsProvider;
 use Zr\PaidAccess\PaidAccessCore;
 
@@ -11,8 +10,7 @@ $module_id = 'zr.paidaccess';
 $prefix = 'ZR_PAIDACCESS_';
 
 global $APPLICATION;
-if ($APPLICATION->GetGroupRight($module_id) == 'D')
-{
+if ($APPLICATION->GetGroupRight($module_id) == 'D') {
     $APPLICATION->AuthForm(Loc::getMessage('ACCESS_DENIED'));
 }
 
@@ -34,11 +32,11 @@ $arStructureOptions = [
                 "TYPE" => "title",
                 'TEXT' => "Настройки работы модуля"
             ],
-            'MODULE_ACTIVE' => array(
+            'MODULE_ACTIVE' => [
                 'TITLE' => 'Модуль активен',
                 'TYPE' => 'checkbox',
                 'DEFAULT' => 'Y',
-            ),
+            ],
         ],
     ],
     '_PAYMENT_SETTINGS' => [
@@ -228,22 +226,22 @@ $arStructureOptions = [
                 "TYPE" => "title",
                 'TEXT' => "Логирование"
             ],
-            'LOGGING_ACTIVE' => array(
+            'LOGGING_ACTIVE' => [
                 'TITLE' => 'Логирование включено',
                 'TYPE' => 'checkbox',
                 'DEFAULT' => 'N',
-            ),
-            'LOG_LEVEL' => array(
+            ],
+            'LOG_LEVEL' => [
                 'TITLE' => 'Уровень логирования',
                 'TYPE' => 'selectbox',
                 'VALUES' => ['debug' => 'Debug', 'info' => 'Info', 'warning' => 'Warning', 'error' => 'Error'],
                 'DEFAULT' => 'error',
-            ),
-            'LOG_PATH' => array(
+            ],
+            'LOG_PATH' => [
                 'TITLE' => 'Путь к лог-файлу',
                 'TYPE' => 'text',
                 'DEFAULT' => PaidAccessCore::DEFAULT_LOG_PATH,
-            ),
+            ],
             'NOTE_LOG_PATH' => [
                 'TYPE' => 'note',
                 'TEXT' => 'Единый файл: события модуля, ошибки оплаты и HTTP-запросы к T-Bank (Init/GetQr/GetState). '
@@ -277,15 +275,11 @@ $arStructureOptions = [
 
 $aTabs = [];
 $rsSites = CSite::GetList($by = 'sort', $order = 'asc', ['ACTIVE' => 'Y']);
-while ($arSite = $rsSites->Fetch())
-{
-    foreach($arStructureOptions as $topCodeSetting => $arTopSettings)
-    {
+while ($arSite = $rsSites->Fetch()) {
+    foreach ($arStructureOptions as $topCodeSetting => $arTopSettings) {
         $arOptions = [];
-        if (!empty($arTopSettings['OPTIONS']) && is_array($arTopSettings['OPTIONS']) && count($arTopSettings['OPTIONS']) > 0)
-        {
-            foreach($arTopSettings['OPTIONS'] as $codeOption => $arOption)
-            {
+        if (!empty($arTopSettings['OPTIONS']) && is_array($arTopSettings['OPTIONS']) && count($arTopSettings['OPTIONS']) > 0) {
+            foreach ($arTopSettings['OPTIONS'] as $codeOption => $arOption) {
                 $option = [
                     !empty($codeOption) ? $codeOption .'_'. $arSite['LID'] : '',
                     $arOption['TITLE'],
@@ -293,8 +287,7 @@ while ($arSite = $rsSites->Fetch())
                 ];
 
                 $haveError = false;
-                switch ($arOption['TYPE'])
-                {
+                switch ($arOption['TYPE']) {
                     case "multiselectbox":
                         $option[] = [
                             'multiselectbox',
@@ -353,7 +346,9 @@ while ($arSite = $rsSites->Fetch())
                         break;
                 }
 
-                if ($haveError) continue;
+                if ($haveError) {
+                    continue;
+                }
                 $arOptions[] = $option;
             }
         }
@@ -367,16 +362,16 @@ while ($arSite = $rsSites->Fetch())
     }
 }
 
-
 // save settings
-if ($request->isPost() && $request['Update'] && check_bitrix_sessid())
-{
-    foreach ($aTabs as $aTab)
-    {
-        foreach ($aTab['OPTIONS'] as $arOption)
-        {
-            if (!is_array($arOption)) continue;
-            if ($arOption['note']) continue;
+if ($request->isPost() && $request['Update'] && check_bitrix_sessid()) {
+    foreach ($aTabs as $aTab) {
+        foreach ($aTab['OPTIONS'] as $arOption) {
+            if (!is_array($arOption)) {
+                continue;
+            }
+            if ($arOption['note']) {
+                continue;
+            }
             __AdmSettingsSaveOption($module_id, $arOption);
         }
     }
@@ -389,15 +384,13 @@ $tabControl = new CAdminTabControl('tabControl', $aTabs);
 <?$tabControl->Begin();?>
 <form method="POST" action="<?=$APPLICATION->GetCurPage()?>?mid=<?=htmlspecialcharsbx($request['mid'])?>&lang=<?=$request['lang']?>" name="zr_reviewhl_settings">
     <?=bitrix_sessid_post()?>
-    <?foreach ($aTabs as $aTab)
-    {
-        if ($aTab['OPTIONS'])
-        {
+    <?foreach ($aTabs as $aTab) {
+        if ($aTab['OPTIONS']) {
             $tabControl->BeginNextTab();
             __AdmSettingsDrawList($module_id, $aTab['OPTIONS']);
         }
     }?>
-    <? $tabControl->Buttons(); ?>
+    <?php $tabControl->Buttons(); ?>
     <input type="submit" name="Update" value="<?=Loc::getMessage('MAIN_SAVE')?>">
     <input type="reset" name="reset" value="<?=Loc::getMessage('MAIN_RESET')?>">
 </form>

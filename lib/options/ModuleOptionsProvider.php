@@ -90,5 +90,4 @@ class ModuleOptionsProvider
             PaidAccessCore::BILLING_SHORT_MONTH_PREVIOUS => 'Предпоследний день месяца',
         ];
     }
-
 }

@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_IMPORT_TITLE'] = 'Импорт платёжных шлюзов';
 $MESS['ZR_PAIDACCESS_BACK_TO_LIST'] = 'К списку шлюзов';
 $MESS['ZR_PAIDACCESS_IMPORT_FILE'] = 'JSON-файл';

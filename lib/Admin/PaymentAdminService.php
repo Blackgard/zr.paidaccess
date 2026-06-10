@@ -6,6 +6,7 @@ use Bitrix\Main\Type\DateTime;
 use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Enum\PaymentStatus;
+use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Log\AuditLogService;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\GatewayTransactionRepository;
@@ -329,6 +330,12 @@ class PaymentAdminService
                 $paymentId,
                 'Статус изменён вручную в админке'
             );
+        }
+
+        if ($status === PaymentStatus::REFUNDED
+            || ($wasGrantingAccess && !$willGrantAccess && $status !== PaymentStatus::CANCELLED)
+        ) {
+            FundMovementService::tryRecordPaymentRefund($paymentId);
         }
 
         $updated = PaymentRepository::getById($paymentId);

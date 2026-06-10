@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_GATEWAYS_TITLE'] = 'Платёжные шлюзы';
 $MESS['ZR_PAIDACCESS_GATEWAY_EDIT_TITLE'] = 'Платёжный шлюз';
 $MESS['ZR_PAIDACCESS_GATEWAY_ADD'] = 'Добавить шлюз';

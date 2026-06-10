@@ -6,11 +6,11 @@ use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\GatewayFactory;
-use Zr\PaidAccess\Tools\Logger;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Tools\Logger;
 
 class SubscriptionPaymentService
 {
@@ -96,17 +96,20 @@ class SubscriptionPaymentService
         if (!$modulePayment) {
             ModuleEventLogService::error('payment_widget_not_found', 'Платёж не найден', [], $modulePaymentId, null, $siteId);
             PaymentPageErrorRenderer::render($siteId);
+
             return;
         }
 
         if (PaymentStatus::isPaidLike((string)$modulePayment['STATUS'])) {
             echo '<p>Оплата уже получена. Обновите страницу.</p>';
+
             return;
         }
 
         $gatewayPaymentId = (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? '');
         if ($gatewayPaymentId === '') {
             echo '<p>Платёж в банке ещё не создан. Обновите страницу.</p>';
+
             return;
         }
 
@@ -136,6 +139,7 @@ class SubscriptionPaymentService
                 }
 
                 echo $result->html;
+
                 return;
             }
 

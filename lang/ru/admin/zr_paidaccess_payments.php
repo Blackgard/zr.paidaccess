@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_PAYMENTS_TITLE'] = 'Платежи и подписки';
 $MESS['ZR_PAIDACCESS_PAYMENT_ADD'] = 'Создать платёж';
 $MESS['ZR_PAIDACCESS_COL_ID'] = 'ID';

@@ -175,9 +175,9 @@ class SubscriptionNotificationService
         return trim((string)($user['EMAIL'] ?? ''));
     }
 
-  /**
-     * @param \Bitrix\Main\Type\DateTime|\DateTimeInterface|string|null $value
-     */
+    /**
+       * @param \Bitrix\Main\Type\DateTime|\DateTimeInterface|string|null $value
+       */
     protected static function formatDateTime($value): string
     {
         if ($value instanceof DateTime) {

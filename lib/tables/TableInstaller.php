@@ -25,6 +25,12 @@ class TableInstaller
         PaymentInstaller::ensureSchema();
     }
 
+    public static function ensureFundTables(): void
+    {
+        self::createTableIfNotExists(FundTable::class);
+        self::createTableIfNotExists(FundMovementTable::class);
+    }
+
     public static function install(): void
     {
         self::createTableIfNotExists(GatewayTable::class);
@@ -34,6 +40,7 @@ class TableInstaller
         self::createTableIfNotExists(GatewayTransactionTable::class);
         GatewayTransactionInstaller::ensureSchema();
         self::createTableIfNotExists(SubscriptionTable::class);
+        self::ensureFundTables();
     }
 
     public static function uninstall(): void
@@ -54,6 +61,14 @@ class TableInstaller
 
         if ($connection->isTableExists(SubscriptionTable::getTableName())) {
             $connection->dropTable(SubscriptionTable::getTableName());
+        }
+
+        if ($connection->isTableExists(FundMovementTable::getTableName())) {
+            $connection->dropTable(FundMovementTable::getTableName());
+        }
+
+        if ($connection->isTableExists(FundTable::getTableName())) {
+            $connection->dropTable(FundTable::getTableName());
         }
     }
 

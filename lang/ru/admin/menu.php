@@ -1,7 +1,9 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_MENU_ROOT'] = 'Платёжный доступ';
 $MESS['ZR_PAIDACCESS_MENU_SUBSCRIBERS'] = 'Подписчики';
 $MESS['ZR_PAIDACCESS_MENU_PAYMENTS'] = 'Платежи';
+$MESS['ZR_PAIDACCESS_MENU_FUNDS'] = 'Фонды';
 $MESS['ZR_PAIDACCESS_MENU_GATEWAYS'] = 'Платёжные шлюзы';
 $MESS['ZR_PAIDACCESS_MENU_LOGS'] = 'Журнал';
 $MESS['ZR_PAIDACCESS_MENU_OPTIONS'] = 'Настройки модуля';

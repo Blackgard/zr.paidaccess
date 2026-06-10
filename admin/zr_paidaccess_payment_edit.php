@@ -64,6 +64,7 @@ if ($isEditMode) {
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
         CAdminMessage::ShowMessage(Loc::getMessage('ZR_PAIDACCESS_NOT_FOUND'));
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_admin.php';
+
         return;
     }
     $formValues = array_merge($formValues, $payment);
@@ -179,8 +180,8 @@ if ($message) {
 
     <?php
     $tabControl->Begin();
-    $tabControl->BeginNextTab();
-    ?>
+$tabControl->BeginNextTab();
+?>
 
     <tr>
         <td colspan="2" align="center">
@@ -201,9 +202,9 @@ if ($message) {
                         <td class="adm-detail-content-cell-r">
                             <?php if ($isEditMode): ?>
                                 <?php
-                                $userLabel = $userPreview
-                                    ? PaymentAdminService::formatUserLabel($userPreview)
-                                    : '[' . (int)$formValues['USER_ID'] . ']';
+                            $userLabel = $userPreview
+                                ? PaymentAdminService::formatUserLabel($userPreview)
+                                : '[' . (int)$formValues['USER_ID'] . ']';
                                 ?>
                                 <input type="hidden" name="USER_ID" value="<?= (int)$formValues['USER_ID'] ?>">
                                 <a href="/bitrix/admin/user_edit.php?ID=<?= (int)$formValues['USER_ID'] ?>&lang=<?= LANGUAGE_ID ?>" target="_blank">
@@ -329,8 +330,8 @@ if ($message) {
         'save' => true,
         'apply' => true,
     ]);
-    $tabControl->End();
-    ?>
+$tabControl->End();
+?>
 </form>
 </div>
 
