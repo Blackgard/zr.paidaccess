@@ -37,6 +37,7 @@ class zr_paidaccess extends CModule
         '/themes/.default/zr.paidaccess.css' => '/bitrix/themes/.default/zr.paidaccess.css',
         '/components/zr/personal.subscription' => '/local/components/zr/personal.subscription',
         '/components/zr/member.payment.list' => '/local/components/zr/member.payment.list',
+        '/components/zr/fund.wallet' => '/local/components/zr/fund.wallet',
     ];
 
     public function __construct()
