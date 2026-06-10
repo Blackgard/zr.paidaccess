@@ -47,8 +47,8 @@
     width: 60%;
 }
 
-.adm-workarea .zr-paidaccess-admin input[type="text"],
-.adm-workarea .zr-paidaccess-admin input[type="number"],
+.adm-workarea .zr-paidaccess-admin input[type='text'],
+.adm-workarea .zr-paidaccess-admin input[type='number'],
 .zr-paidaccess-admin textarea,
 .zr-paidaccess-admin select.select-field {
     width: 100%;

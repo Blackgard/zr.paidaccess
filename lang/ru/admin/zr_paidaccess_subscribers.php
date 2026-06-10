@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_SUBSCRIBERS_TITLE'] = 'Подписчики';
 $MESS['ZR_PAIDACCESS_COL_ID'] = 'ID';
 $MESS['ZR_PAIDACCESS_COL_USER'] = 'Пользователь';

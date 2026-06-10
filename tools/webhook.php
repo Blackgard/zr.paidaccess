@@ -14,12 +14,13 @@ define('BX_PUBLIC_MODE', true);
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
 use Bitrix\Main\Loader;
-use Zr\PaidAccess\Payment\PaymentWebhookService;
 use Zr\PaidAccess\PaidAccessCore;
+use Zr\PaidAccess\Payment\PaymentWebhookService;
 
 if (!Loader::includeModule(PaidAccessCore::MODULE_ID)) {
     http_response_code(503);
     echo 'Module not loaded';
+
     return;
 }
 
@@ -29,6 +30,7 @@ $rawBody = file_get_contents('php://input') ?: '';
 if ($gatewayId <= 0) {
     http_response_code(400);
     echo 'Gateway id required';
+
     return;
 }
 

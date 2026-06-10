@@ -4,9 +4,9 @@ namespace Zr\PaidAccess\Payment;
 
 use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Gateway\GatewayFactory;
-use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Gateway\Provider\GatewayProviderRegistry;
+use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Tools\RequestContext;
 
 /**

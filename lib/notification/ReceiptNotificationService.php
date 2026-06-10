@@ -45,6 +45,7 @@ class ReceiptNotificationService
 
         if ($customerEmail === '') {
             self::logSiteEmailSkipped($paymentId, $payment, 'У пользователя не указан email');
+
             return;
         }
 

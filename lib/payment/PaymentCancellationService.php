@@ -3,11 +3,11 @@
 namespace Zr\PaidAccess\Payment;
 
 use Zr\PaidAccess\Admin\PaymentAdminService;
+use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\GatewayFactory;
 use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffGateway;
-use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Subscription\SubscriptionService;
 use Zr\PaidAccess\Tools\RequestContext;

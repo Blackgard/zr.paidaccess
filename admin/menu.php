@@ -31,6 +31,15 @@ return [
                 ],
             ],
             [
+                'text' => GetMessage('ZR_PAIDACCESS_MENU_FUNDS'),
+                'title' => GetMessage('ZR_PAIDACCESS_MENU_FUNDS'),
+                'url' => 'zr_paidaccess_funds.php?lang=' . LANGUAGE_ID,
+                'more_url' => [
+                    'zr_paidaccess_fund_edit.php',
+                    'zr_paidaccess_fund_movement_edit.php',
+                ],
+            ],
+            [
                 'text' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'title' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'url' => 'zr_paidaccess_gateways.php?lang=' . LANGUAGE_ID,

@@ -9,9 +9,9 @@ use Zr\PaidAccess\Tables\EventLogTable;
 
 class EventLogAdminService
 {
-  /**
-     * @return array<int, string>
-     */
+    /**
+       * @return array<int, string>
+       */
     public static function getLevelTitles(): array
     {
         return [

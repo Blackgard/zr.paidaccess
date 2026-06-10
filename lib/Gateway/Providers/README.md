@@ -6,15 +6,15 @@
 
 1. Создайте папку `Sberbank/`
 2. Добавьте файлы:
-   - `SberbankProvider.php` — implements `GatewayProviderInterface` (или extends `AbstractGatewayProvider`)
-   - `SberbankGateway.php` — implements `PaymentGatewayInterface`
-   - вспомогательные классы (ApiClient, Config, …)
+    - `SberbankProvider.php` — implements `GatewayProviderInterface` (или extends `AbstractGatewayProvider`)
+    - `SberbankGateway.php` — implements `PaymentGatewayInterface`
+    - вспомогательные классы (ApiClient, Config, …)
 3. В `SberbankProvider`:
-   - `getCode()` → `'sberbank'` (код в БД `zr_paidaccess_gateway.PROVIDER`)
-   - `getTitle()` → название в админке
-   - `getAdminFields()` → поля для JSON OPTIONS
-   - `createGateway($row)` → `return new SberbankGateway($row);`
-   - при онлайн-кассе: `implements GatewayReceiptCapableInterface` + `getReceiptDeliveryInfo()`
+    - `getCode()` → `'sberbank'` (код в БД `zr_paidaccess_gateway.PROVIDER`)
+    - `getTitle()` → название в админке
+    - `getAdminFields()` → поля для JSON OPTIONS
+    - `createGateway($row)` → `return new SberbankGateway($row);`
+    - при онлайн-кассе: `implements GatewayReceiptCapableInterface` + `getReceiptDeliveryInfo()`
 4. Готово — **фабрику и реестр править не нужно**.
 
 ## Правила автоподключения

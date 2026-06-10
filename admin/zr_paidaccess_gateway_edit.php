@@ -103,6 +103,7 @@ if ($isEditMode) {
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
         CAdminMessage::ShowMessage(Loc::getMessage('ZR_PAIDACCESS_NOT_FOUND'));
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_admin.php';
+
         return;
     }
     $formValues = array_merge($formValues, $gatewayRow);
@@ -284,8 +285,8 @@ if ($message) {
 
     <?php
     $tabControl->Begin();
-    $tabControl->BeginNextTab();
-    ?>
+$tabControl->BeginNextTab();
+?>
 
     <tr>
         <td colspan="2" align="center">
@@ -402,14 +403,14 @@ if ($message) {
                             <td width="40%" class="adm-detail-content-cell-l"><?= Loc::getMessage('ZR_PAIDACCESS_TEST_STATUS') ?>:</td>
                             <td width="60%" class="adm-detail-content-cell-r">
                                 <?= $testPassed
-                                    ? StatusBadgeRenderer::render(
-                                        Loc::getMessage('ZR_PAIDACCESS_TEST_PASSED'),
-                                        StatusBadgeRenderer::STYLE_COMPLETED
-                                    )
-                                    : StatusBadgeRenderer::render(
-                                        Loc::getMessage('ZR_PAIDACCESS_TEST_NOT_PASSED'),
-                                        StatusBadgeRenderer::STYLE_WARNING
-                                    ) ?>
+                                ? StatusBadgeRenderer::render(
+                                    Loc::getMessage('ZR_PAIDACCESS_TEST_PASSED'),
+                                    StatusBadgeRenderer::STYLE_COMPLETED
+                                )
+                                : StatusBadgeRenderer::render(
+                                    Loc::getMessage('ZR_PAIDACCESS_TEST_NOT_PASSED'),
+                                    StatusBadgeRenderer::STYLE_WARNING
+                                ) ?>
                             </td>
                         </tr>
                         <?php if ($testPassed && !empty($formValues['TEST_PASSED_AT'])): ?>
@@ -417,13 +418,13 @@ if ($message) {
                                 <td class="adm-detail-content-cell-l"><?= Loc::getMessage('ZR_PAIDACCESS_TEST_PASSED_AT') ?>:</td>
                                 <td class="adm-detail-content-cell-r">
                                     <?php
-                                    $passedAt = $formValues['TEST_PASSED_AT'];
-                                    echo htmlspecialcharsbx(
-                                        $passedAt instanceof \Bitrix\Main\Type\DateTime
-                                            ? $passedAt->toString()
-                                            : (string)$passedAt
-                                    );
-                                    ?>
+                                $passedAt = $formValues['TEST_PASSED_AT'];
+                            echo htmlspecialcharsbx(
+                                $passedAt instanceof \Bitrix\Main\Type\DateTime
+                                    ? $passedAt->toString()
+                                    : (string)$passedAt
+                            );
+                            ?>
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -483,8 +484,8 @@ if ($message) {
         'save' => true,
         'apply' => true,
     ]);
-    $tabControl->End();
-    ?>
+$tabControl->End();
+?>
 </form>
 
 </div>

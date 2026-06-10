@@ -19,7 +19,9 @@
     font-weight: 600;
     line-height: 1.2;
     border: 1px solid #e5c400;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .zr-paidaccess-pay-btn--tbank:hover,

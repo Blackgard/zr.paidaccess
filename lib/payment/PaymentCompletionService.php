@@ -5,6 +5,7 @@ namespace Zr\PaidAccess\Payment;
 use Bitrix\Main\Type\DateTime;
 use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Enum\PaymentStatus;
+use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Gateway\GatewayTestService;
 use Zr\PaidAccess\Notification\ReceiptNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
@@ -41,10 +42,15 @@ class PaymentCompletionService
 
         if (PaymentStatus::isPaidLike((string)$payment['STATUS'])) {
             if (!empty($payment['DATE_PAID'])) {
+                FundMovementService::tryRecordPaymentIncome($modulePaymentId);
+
                 return true;
             }
 
-            return self::backfillPaidPayment($modulePaymentId, $payment, $gatewayPaymentId, $gatewayStatus);
+            $backfilled = self::backfillPaidPayment($modulePaymentId, $payment, $gatewayPaymentId, $gatewayStatus);
+            FundMovementService::tryRecordPaymentIncome($modulePaymentId);
+
+            return $backfilled;
         }
 
         $userId = (int)$payment['USER_ID'];
@@ -56,6 +62,7 @@ class PaymentCompletionService
                 'STATUS' => PaymentStatus::PAID,
                 'DATE_PAID' => new DateTime(),
             ]);
+            FundMovementService::tryRecordPaymentIncome($modulePaymentId);
 
             return true;
         }
@@ -97,6 +104,8 @@ class PaymentCompletionService
                 ReceiptNotificationService::handlePaymentCompleted($modulePaymentId);
             }
         }
+
+        FundMovementService::tryRecordPaymentIncome($modulePaymentId);
 
         return true;
     }

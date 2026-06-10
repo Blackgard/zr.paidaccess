@@ -47,6 +47,7 @@ if ($request->isPost() && $request->getPost('action') === 'delete') {
         if ($id <= 0) {
             continue;
         }
+
         try {
             PaymentAdminService::delete($id);
         } catch (\Throwable $e) {

@@ -3,6 +3,7 @@
 namespace Zr\PaidAccess\Payment;
 
 use Zr\PaidAccess\Enum\PaymentStatus;
+use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
 use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffStatusMapper;
 use Zr\PaidAccess\Log\ModuleEventLogService;
@@ -45,6 +46,7 @@ class PaymentWebhookStatusService
                 $userId
             );
             SubscriptionService::reconcileUserSubscription($userId);
+            FundMovementService::tryRecordPaymentRefund($paymentId);
 
             return;
         }

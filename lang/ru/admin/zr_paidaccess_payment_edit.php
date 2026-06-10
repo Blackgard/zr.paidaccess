@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_PAYMENT_EDIT_TITLE'] = 'Платёж';
 $MESS['ZR_PAIDACCESS_PAYMENT_ADD'] = 'Создать платёж';
 $MESS['ZR_PAIDACCESS_LIST_BTN'] = 'Список платежей';

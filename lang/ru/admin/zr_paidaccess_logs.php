@@ -1,4 +1,5 @@
 <?php
+
 $MESS['ZR_PAIDACCESS_LOGS_TITLE'] = 'Журнал модуля платёжного доступа';
 $MESS['ZR_PAIDACCESS_LOGS_TAB_EVENTS'] = 'События и ошибки';
 $MESS['ZR_PAIDACCESS_LOGS_TAB_GATEWAY'] = 'Платёжный шлюз';

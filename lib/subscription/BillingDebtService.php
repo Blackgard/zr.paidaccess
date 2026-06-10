@@ -33,11 +33,13 @@ class BillingDebtService
 
         if (AccessControl::hasPaidSubscription($userId)) {
             self::updateStatus($userId, SubscriptionStatus::ACTIVE);
+
             return;
         }
 
         if (AccessControl::mustShowBlockPage($userId)) {
             self::updateStatus($userId, SubscriptionStatus::DEBT);
+
             return;
         }
 

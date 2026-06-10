@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @link https://alexandr-zr.ru/
  * @author Alexandr Drachenin <alexdrachenin98@gmail.com>
@@ -103,18 +104,18 @@ class PaidAccessCore
 
     public static function normalizeSiteId(?string $siteId = null): string
     {
-
         $siteId = $siteId ?? (defined('SITE_ID') ? (string) SITE_ID : 's1');
-        if ($siteId === 'ru')
-        {
+        if ($siteId === 'ru') {
             return 's1';
         }
+
         return $siteId;
     }
 
     public static function getOptionByCode(string $code, $default = '', $siteId = null): string
     {
         $siteLid = self::normalizeSiteId($siteId);
+
         return Option::get(self::MODULE_ID, $code . '_' . $siteLid, (string) $default, $siteLid);
     }
 
@@ -129,11 +130,11 @@ class PaidAccessCore
     public static function getAccessRestrictedGroupIds(?string $siteId = null): array
     {
         $raw = self::getOptionByCode(self::OPTION_ACCESS_RESTRICTED_GROUPS, self::DEFAULT_ACCESS_RESTRICTED_GROUPS, $siteId);
-        if ($raw === '')
-        {
+        if ($raw === '') {
             return [];
         }
         $ids = preg_split('/[,\s]+/', $raw, -1, PREG_SPLIT_NO_EMPTY);
+
         return array_values(array_unique(array_map('intval', $ids)));
     }
 

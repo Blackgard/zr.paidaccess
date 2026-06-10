@@ -41,5 +41,4 @@ final class PaidAccessCoreSiteContextTest extends TestCase
         $this->assertSame('admin@example.com', $fields['EMAIL']);
         $this->assertSame('Сайт', $fields['SITE_NAME']);
     }
-
 }
