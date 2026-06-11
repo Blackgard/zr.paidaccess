@@ -163,6 +163,7 @@ class GatewayTransactionRepository
                 return GatewayEventType::GET_QR;
 
             case 'getstate':
+            case 'checkorder':
 
                 return GatewayEventType::STATUS_CHECK;
 

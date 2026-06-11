@@ -56,6 +56,11 @@ class TinkoffApiClient
         return $this->request('GetState', $params);
     }
 
+    public function checkOrder(array $params)
+    {
+        return $this->request('CheckOrder', $params);
+    }
+
     public function cancel(array $params)
     {
         return $this->request('Cancel', $params);

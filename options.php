@@ -100,6 +100,19 @@ $arStructureOptions = [
                     . 'Кнопка T-Bank — ссылка на классическую платёжную форму банка. '
                     . 'Автоперенаправление на форму банка настраивается в карточке шлюза T-Bank.',
             ],
+            'PAYMENT_DUPLICATE_ORDER_POLICY' => [
+                'TITLE' => 'Дубликат order_id в T-Bank (ошибка 8)',
+                'TYPE' => 'selectbox',
+                'VALUES' => ModuleOptionsProvider::getPaymentDuplicateOrderPolicyOptions(),
+                'DEFAULT' => PaidAccessCore::DEFAULT_PAYMENT_DUPLICATE_ORDER_POLICY,
+            ],
+            'NOTE_PAYMENT_DUPLICATE_ORDER_POLICY' => [
+                'TYPE' => 'note',
+                'TEXT' => 'Если банк отвечает «Заказ с таким order_id уже существует» при Init. '
+                    . '«Ошибка» — платёж в модуле переводится в failed. '
+                    . '«Ожидает оплаты» — статус не меняется, пользователь видит сообщение об ошибке. '
+                    . '«Привязать» — модуль запрашивает CheckOrder и подставляет PaymentId существующего платежа.',
+            ],
             'PAYMENT_PAGE_ERROR_TEXT' => [
                 'TITLE' => 'Текст ошибки на странице оплаты (для пользователя)',
                 'TYPE' => 'textarea',

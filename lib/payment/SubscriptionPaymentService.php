@@ -5,7 +5,10 @@ namespace Zr\PaidAccess\Payment;
 use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
+use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\GatewayFactory;
+use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffGateway;
+use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffInitError;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
@@ -131,6 +134,28 @@ class SubscriptionPaymentService
 
             $result = $gateway->fetchPaymentForm($gatewayPaymentId, $request);
 
+            if (
+                !$result->success
+                && TinkoffInitError::isDuplicateOrderIdError($result)
+                && self::handleDuplicateOrderIdError(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $result,
+                    $gateway,
+                    $request,
+                    $siteId
+                )
+            ) {
+                $modulePayment = PaymentRepository::getById($modulePaymentId) ?? $modulePayment;
+                $gatewayPaymentId = (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? '');
+                if ($gatewayPaymentId !== '') {
+                    $result = $gateway->fetchPaymentForm(
+                        $gatewayPaymentId,
+                        self::buildInitRequestWithStoredUrl($modulePayment)
+                    );
+                }
+            }
+
             if ($result->success && $result->html !== '') {
                 if ($result->paymentUrl !== '' && trim((string)($modulePayment['GATEWAY_PAYMENT_URL'] ?? '')) === '') {
                     PaymentRepository::update($modulePaymentId, ['GATEWAY_PAYMENT_URL' => $result->paymentUrl]);
@@ -213,19 +238,30 @@ class SubscriptionPaymentService
 
         if (!$result->success) {
             $errorMessage = $result->errorMessage ?: 'Ошибка Init в банке';
-            PaymentRepository::update($modulePaymentId, ['STATUS' => PaymentStatus::FAILED]);
-            ModuleEventLogService::error(
-                'payment_init_failed',
-                $errorMessage,
-                [
-                    'orderId' => (string)$modulePayment['ORDER_ID'],
-                    'gatewayCode' => (string)$modulePayment['GATEWAY_CODE'],
-                ],
-                $modulePaymentId,
-                (int)$modulePayment['USER_ID'],
-                $siteId
-            );
-            SubscriptionNotificationService::onPaymentFailed($modulePaymentId, $errorMessage, $siteId);
+            if (
+                TinkoffInitError::isDuplicateOrderIdError($result)
+                && self::handleDuplicateOrderIdError(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $result,
+                    $gateway,
+                    $request,
+                    $siteId
+                )
+            ) {
+                return;
+            }
+
+            if (!TinkoffInitError::isDuplicateOrderIdError($result)) {
+                self::markPaymentFailed(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $errorMessage,
+                    $siteId,
+                    'payment_init_failed'
+                );
+            }
+
             throw new \RuntimeException($errorMessage);
         }
 
@@ -233,6 +269,105 @@ class SubscriptionPaymentService
             'GATEWAY_PAYMENT_ID' => $result->gatewayPaymentId,
             'GATEWAY_PAYMENT_URL' => $result->paymentUrl,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $modulePayment
+     */
+    private static function handleDuplicateOrderIdError(
+        int $modulePaymentId,
+        array $modulePayment,
+        InitPaymentResult $initResult,
+        $gateway,
+        InitPaymentRequest $request,
+        ?string $siteId
+    ): bool {
+        $policy = PaidAccessCore::getPaymentDuplicateOrderPolicy($siteId);
+        $errorMessage = trim($initResult->errorMessage) !== ''
+            ? $initResult->errorMessage
+            : 'Заказ с таким order_id уже существует в банке';
+
+        if ($policy === PaidAccessCore::PAYMENT_DUPLICATE_ORDER_REUSE && $gateway instanceof TinkoffGateway) {
+            $recovered = $gateway->recoverDuplicateOrder($request);
+            if ($recovered->success && $recovered->gatewayPaymentId !== '') {
+                PaymentRepository::update($modulePaymentId, [
+                    'GATEWAY_PAYMENT_ID' => $recovered->gatewayPaymentId,
+                    'GATEWAY_PAYMENT_URL' => $recovered->paymentUrl,
+                ]);
+                ModuleEventLogService::info(
+                    'payment_duplicate_order_reused',
+                    'Привязан существующий платёж T-Bank: ' . $recovered->gatewayPaymentId,
+                    ['orderId' => (string)$modulePayment['ORDER_ID']],
+                    $modulePaymentId,
+                    (int)$modulePayment['USER_ID'],
+                    $siteId
+                );
+
+                return true;
+            }
+
+            ModuleEventLogService::warning(
+                'payment_duplicate_order_reuse_failed',
+                $recovered->errorMessage ?: 'Не удалось привязать платёж через CheckOrder',
+                ['orderId' => (string)$modulePayment['ORDER_ID']],
+                $modulePaymentId,
+                (int)$modulePayment['USER_ID'],
+                $siteId
+            );
+            $policy = PaidAccessCore::PAYMENT_DUPLICATE_ORDER_FAIL;
+        }
+
+        if ($policy === PaidAccessCore::PAYMENT_DUPLICATE_ORDER_IGNORE) {
+            ModuleEventLogService::warning(
+                'payment_duplicate_order_ignored',
+                $errorMessage,
+                ['orderId' => (string)$modulePayment['ORDER_ID']],
+                $modulePaymentId,
+                (int)$modulePayment['USER_ID'],
+                $siteId
+            );
+
+            return false;
+        }
+
+        self::markPaymentFailed(
+            $modulePaymentId,
+            $modulePayment,
+            $errorMessage,
+            $siteId,
+            'payment_duplicate_order_failed'
+        );
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $modulePayment
+     */
+    private static function markPaymentFailed(
+        int $modulePaymentId,
+        array $modulePayment,
+        string $errorMessage,
+        ?string $siteId,
+        string $logEvent
+    ): void {
+        if ((string)($modulePayment['STATUS'] ?? '') === PaymentStatus::FAILED) {
+            return;
+        }
+
+        PaymentRepository::update($modulePaymentId, ['STATUS' => PaymentStatus::FAILED]);
+        ModuleEventLogService::error(
+            $logEvent,
+            $errorMessage,
+            [
+                'orderId' => (string)$modulePayment['ORDER_ID'],
+                'gatewayCode' => (string)$modulePayment['GATEWAY_CODE'],
+            ],
+            $modulePaymentId,
+            (int)$modulePayment['USER_ID'],
+            $siteId
+        );
+        SubscriptionNotificationService::onPaymentFailed($modulePaymentId, $errorMessage, $siteId);
     }
 
     /**
