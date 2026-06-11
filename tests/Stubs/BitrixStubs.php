@@ -80,6 +80,22 @@ class ArgumentException extends \Exception
 {
 }
 
+class GroupTable
+{
+    /**
+     * @param array<string, mixed> $params
+     */
+    public static function getList(array $params = [])
+    {
+        return new class {
+            public function fetch()
+            {
+                return false;
+            }
+        };
+    }
+}
+
 namespace Bitrix\Main\Web;
 
 use Bitrix\Main\ArgumentException;

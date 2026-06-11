@@ -93,6 +93,101 @@ class ModuleOptionsProvider
     }
 
     /**
+     * Реестр пользовательских текстов на сайте (вкладка «Тексты на сайте»).
+     * Новые сообщения добавляются сюда и в PaidAccessCore::OPTION_* + get*().
+     *
+     * @return array<string, array{
+     *     TITLE: string,
+     *     TYPE: string,
+     *     DEFAULT: string,
+     *     ROWS?: int,
+     *     COLS?: int,
+     *     WIDTH?: int,
+     *     NOTE?: string,
+     *     PLANNED?: bool
+     * }>
+     */
+    public static function getUserMessageOptionDefinitions(): array
+    {
+        return [
+            PaidAccessCore::OPTION_PAYMENT_PAGE_ERROR_TEXT => [
+                'TITLE' => 'Страница оплаты: текст при ошибке',
+                'TYPE' => 'textarea',
+                'DEFAULT' => PaidAccessCore::DEFAULT_PAYMENT_PAGE_ERROR_TEXT,
+                'ROWS' => 6,
+                'COLS' => 120,
+                'NOTE' => 'Показывается при сбое создания платежа или получения QR. Технические детали пишутся только в журнал модуля.',
+            ],
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function getUserMessageOptionCodes(): array
+    {
+        return array_keys(self::getUserMessageOptionDefinitions());
+    }
+
+    /**
+     * Поля вкладки «Тексты на сайте» для options.php.
+     *
+     * @return array<string, mixed>
+     */
+    public static function buildUserMessageOptions(): array
+    {
+        $options = [
+            'TITLE_USER_MESSAGES' => [
+                'TYPE' => 'title',
+                'TEXT' => 'Сообщения для посетителей',
+            ],
+            'NOTE_USER_MESSAGES_INTRO' => [
+                'TYPE' => 'note',
+                'TEXT' => 'Здесь настраиваются тексты, которые видит пользователь на сайте (не в письмах и не в админке). '
+                    . 'Плейсхолдеры вроде {SITE_NAME} поддерживаются там, где указано в подсказке к полю.',
+            ],
+        ];
+
+        foreach (self::getUserMessageOptionDefinitions() as $code => $definition) {
+            if (!empty($definition['PLANNED'])) {
+                continue;
+            }
+
+            $field = [
+                'TITLE' => $definition['TITLE'],
+                'TYPE' => $definition['TYPE'],
+                'DEFAULT' => $definition['DEFAULT'],
+            ];
+
+            if (isset($definition['ROWS'], $definition['COLS'])) {
+                $field['ROWS'] = $definition['ROWS'];
+                $field['COLS'] = $definition['COLS'];
+            }
+
+            if (isset($definition['WIDTH'])) {
+                $field['WIDTH'] = $definition['WIDTH'];
+            }
+
+            $options[$code] = $field;
+
+            if (!empty($definition['NOTE'])) {
+                $options['NOTE_' . $code] = [
+                    'TYPE' => 'note',
+                    'TEXT' => (string)$definition['NOTE'],
+                ];
+            }
+        }
+
+        $options['NOTE_USER_MESSAGES_PLANNED'] = [
+            'TYPE' => 'note',
+            'TEXT' => 'Планируется вынести сюда: тексты блока подписки в личном кабинете, страницы блокировки доступа, '
+                . 'подсказки в кошельке фонда. Добавление поля — запись в getUserMessageOptionDefinitions() и геттер в PaidAccessCore.',
+        ];
+
+        return $options;
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function getBillingShortMonthPolicyOptions(): array

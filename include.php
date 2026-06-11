@@ -15,6 +15,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Access\AccessControl' => 'lib/access/AccessControl.php',
     'Zr\PaidAccess\Access\AccessTemplate' => 'lib/access/AccessTemplate.php',
     'Zr\PaidAccess\Options\ModuleOptionsProvider' => 'lib/options/ModuleOptionsProvider.php',
+    'Zr\PaidAccess\Options\ModuleOptionsStructure' => 'lib/options/ModuleOptionsStructure.php',
     'Zr\PaidAccess\Payment\PaymentRepository' => 'lib/payment/PaymentRepository.php',
     'Zr\PaidAccess\Payment\GatewayTransactionRepository' => 'lib/payment/GatewayTransactionRepository.php',
     'Zr\PaidAccess\Payment\SubscriptionPaymentService' => 'lib/payment/SubscriptionPaymentService.php',
