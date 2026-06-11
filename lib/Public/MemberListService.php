@@ -10,6 +10,7 @@ use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 use Zr\PaidAccess\Tables\PaymentTable;
 
 class MemberListService
@@ -117,12 +118,12 @@ class MemberListService
                 '@USER_ID' => $userIds,
                 '@STATUS' => [PaymentStatus::PAID, PaymentStatus::AUTHORIZED],
             ],
-            'select' => ['USER_ID', 'AMOUNT'],
+            'select' => ['USER_ID', 'AMOUNT', 'FUND_AMOUNT'],
         ]);
 
         while ($row = $result->fetch()) {
             $userId = (int)$row['USER_ID'];
-            $map[$userId] = ($map[$userId] ?? 0) + (float)$row['AMOUNT'];
+            $map[$userId] = ($map[$userId] ?? 0) + SubscriptionAmountBreakdown::resolveFundAmountFromPayment($row);
         }
 
         return $map;

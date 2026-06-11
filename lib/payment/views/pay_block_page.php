@@ -3,7 +3,7 @@
  * @var bool $hasPaymentError
  * @var array $infoMessages
  * @var int $modulePaymentId
- * @var float $amount
+ * @var \Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown $breakdown
  * @var string $billingPeriod
  * @var string $billingPeriodLabel
  * @var string $paymentPageErrorText
@@ -14,6 +14,8 @@ use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 if (!defined('B_PROLOG_INCLUDED')) {
     define('B_PROLOG_INCLUDED', true);
 }
+
+$showBreakdown = $breakdown->chargeTotal > $breakdown->fundAmount;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -57,8 +59,28 @@ if (!defined('B_PROLOG_INCLUDED')) {
         .zr-paidaccess-amount {
             font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
             color: #1a1a1a;
+        }
+        .zr-paidaccess-amount-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .zr-paidaccess-charge-total {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 16px 0 8px;
+        }
+        .zr-paidaccess-breakdown {
+            text-align: left;
+            margin: 0 auto 20px;
+            max-width: 320px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .zr-paidaccess-breakdown li {
+            margin: 4px 0;
         }
         .zr-paidaccess-info {
             color: #555;
@@ -116,7 +138,18 @@ if (!defined('B_PROLOG_INCLUDED')) {
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="zr-paidaccess-amount"><?= number_format($amount, 0, '.', ' ') ?> ₽</div>
+            <div class="zr-paidaccess-amount-label">Фондовый взнос</div>
+            <div class="zr-paidaccess-amount"><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</div>
+            <?php if ($showBreakdown): ?>
+                <div class="zr-paidaccess-charge-total">
+                    К оплате: <?= number_format($breakdown->chargeTotal, 0, '.', ' ') ?> ₽
+                </div>
+                <ul class="zr-paidaccess-breakdown">
+                    <li>Налоги — <?= number_format($breakdown->taxAmount, 0, '.', ' ') ?> ₽</li>
+                    <li>Содержание сайта (ФОТ) — <?= number_format($breakdown->maintenanceAmount, 0, '.', ' ') ?> ₽</li>
+                    <li>Фондовый взнос — <?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</li>
+                </ul>
+            <?php endif; ?>
             <div class="zr-paidaccess-pay">
                 <?php SubscriptionPaymentService::renderPaymentWidget($modulePaymentId); ?>
             </div>

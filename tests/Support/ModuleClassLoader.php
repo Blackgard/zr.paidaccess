@@ -42,6 +42,7 @@ final class ModuleClassLoader
         'Zr\PaidAccess\Tools\Logger' => 'lib/tools/Logger.php',
         'Zr\PaidAccess\Payment\GatewayTransactionRepository' => 'lib/payment/GatewayTransactionRepository.php',
         'Zr\PaidAccess\Subscription\BillingPolicy' => 'lib/subscription/BillingPolicy.php',
+        'Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown' => 'lib/subscription/SubscriptionAmountBreakdown.php',
         'Zr\PaidAccess\Access\AccessControl' => 'lib/access/AccessControl.php',
         'Zr\PaidAccess\Gateway\GatewayRepository' => 'lib/Gateway/GatewayRepository.php',
         'Zr\PaidAccess\Gateway\Provider\GatewayProviderRegistry' => 'lib/Gateway/Provider/GatewayProviderRegistry.php',

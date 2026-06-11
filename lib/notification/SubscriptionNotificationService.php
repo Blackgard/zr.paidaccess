@@ -9,6 +9,7 @@ use Zr\PaidAccess\Enum\NotificationType;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 
 /**
  * Письма по статусам подписки и оплаты (F7).
@@ -67,14 +68,15 @@ class SubscriptionNotificationService
         }
 
         $userFields = self::buildUserFields($userId, $email);
-        $amount = number_format(PaidAccessCore::getSubscriptionAmount($siteId), 2, '.', ' ');
+        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
         $periodLabel = BillingPolicy::formatPeriodLabel($billingPeriod, $siteId);
         $dueDate = BillingPolicy::getDueDateForPeriod($userId, $billingPeriod, $siteId)->format('d.m.Y');
 
         self::send(PaidAccessCore::MAIL_EVENT_SUBSCRIPTION_DEBT, $siteId, array_merge($userFields, [
             'BILLING_PERIOD' => $billingPeriod,
             'BILLING_PERIOD_LABEL' => $periodLabel,
-            'AMOUNT' => $amount,
+            'AMOUNT' => number_format($breakdown->fundAmount, 2, '.', ' '),
+            'CHARGE_TOTAL' => number_format($breakdown->chargeTotal, 2, '.', ' '),
             'CURRENCY' => 'RUB',
             'DUE_DATE' => $dueDate,
             'GRACE_DAYS' => (string)PaidAccessCore::getBillingGraceDays($siteId),
@@ -108,10 +110,13 @@ class SubscriptionNotificationService
         $userFields = self::buildUserFields($userId, $email);
         $daysLeft = self::daysUntil($periodEnd);
 
+        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
+
         self::send(PaidAccessCore::MAIL_EVENT_SUBSCRIPTION_EXPIRING, $siteId, array_merge($userFields, [
             'PERIOD_END' => $periodEndStr,
             'DAYS_LEFT' => (string)max(0, $daysLeft),
-            'AMOUNT' => number_format(PaidAccessCore::getSubscriptionAmount($siteId), 2, '.', ' '),
+            'AMOUNT' => number_format($breakdown->fundAmount, 2, '.', ' '),
+            'CHARGE_TOTAL' => number_format($breakdown->chargeTotal, 2, '.', ' '),
             'CURRENCY' => 'RUB',
         ]));
 
@@ -127,10 +132,13 @@ class SubscriptionNotificationService
         $userFields = self::buildUserFields($userId, $email);
         $billingPeriod = (string)($payment['BILLING_PERIOD'] ?? '');
 
+        $breakdown = SubscriptionAmountBreakdown::fromPaymentRow($payment);
+
         return array_merge($userFields, [
             'PAYMENT_ID' => (string)($payment['ID'] ?? ''),
             'ORDER_ID' => (string)($payment['ORDER_ID'] ?? ''),
-            'AMOUNT' => number_format((float)($payment['AMOUNT'] ?? 0), 2, '.', ' '),
+            'AMOUNT' => number_format($breakdown->fundAmount, 2, '.', ' '),
+            'CHARGE_TOTAL' => number_format($breakdown->chargeTotal, 2, '.', ' '),
             'CURRENCY' => (string)($payment['CURRENCY'] ?? 'RUB'),
             'BILLING_PERIOD' => $billingPeriod,
             'BILLING_PERIOD_LABEL' => BillingPolicy::formatPeriodLabel($billingPeriod, $siteId),

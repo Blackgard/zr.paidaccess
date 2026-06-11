@@ -8,6 +8,7 @@ use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 use Zr\PaidAccess\Tables\SubscriptionTable;
 
 class PersonalSubscriptionViewService
@@ -42,6 +43,7 @@ class PersonalSubscriptionViewService
         }
 
         $dueDate = BillingPolicy::getDueDateForPeriod($userId, $billingPeriod, $siteId);
+        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
 
         return [
             'USER_ID' => $userId,
@@ -55,8 +57,15 @@ class PersonalSubscriptionViewService
             'DAYS_LEFT' => self::daysUntil($periodEnd),
             'DUE_DATE' => $dueDate->format('d.m.Y'),
             'DAYS_UNTIL_DUE' => self::daysUntilDate($dueDate),
-            'AMOUNT' => PaidAccessCore::getSubscriptionAmount($siteId),
-            'AMOUNT_FORMATTED' => number_format(PaidAccessCore::getSubscriptionAmount($siteId), 0, '.', ' '),
+            'AMOUNT' => $breakdown->fundAmount,
+            'AMOUNT_FORMATTED' => number_format($breakdown->fundAmount, 0, '.', ' '),
+            'CHARGE_TOTAL' => $breakdown->chargeTotal,
+            'CHARGE_TOTAL_FORMATTED' => number_format($breakdown->chargeTotal, 0, '.', ' '),
+            'TAX_AMOUNT' => $breakdown->taxAmount,
+            'TAX_AMOUNT_FORMATTED' => number_format($breakdown->taxAmount, 0, '.', ' '),
+            'MAINTENANCE_AMOUNT' => $breakdown->maintenanceAmount,
+            'MAINTENANCE_AMOUNT_FORMATTED' => number_format($breakdown->maintenanceAmount, 0, '.', ' '),
+            'SHOW_AMOUNT_BREAKDOWN' => $breakdown->chargeTotal > $breakdown->fundAmount,
             'SHOW_PAYMENT_BLOCK' => $showPaymentBlock,
             'MODULE_PAYMENT_ID' => $modulePaymentId,
             'CAN_INIT_PAYMENT' => BillingPolicy::canInitPayment($userId, $siteId) || $modulePaymentId > 0,

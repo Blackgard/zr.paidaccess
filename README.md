@@ -135,6 +135,7 @@ local/modules/zr.paidaccess/
 ### Принцип
 
 - **Баланс фонда не хранится в таблице** `zr_paidaccess_fund` — только вычисляется: **Σ income − Σ expense** по `zr_paidaccess_fund_movement`.
+- В ledger попадает только **фондовый взнос** (`FUND_AMOUNT`), а не полная сумма оплаты. Клиент платит `налог + ФОТ + фондовый взнос` (например, 130 + 300 + 1000 = 1430 ₽).
 - На каждый сайт (`SITE_ID`) по умолчанию один фонд: `CODE=default`, `IS_DEFAULT=Y` (`FundService::ensureDefaultFund()`).
 - Привязка платежа к фонду: `FundPaymentSiteResolver` — `SITE_ID` шлюза платежа, иначе текущий/нормализованный сайт.
 
@@ -356,7 +357,10 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 | `MODULE_ACTIVE`                 | Включить модуль                                                  |
 | `ACCESS_RESTRICTED_GROUPS`      | Группы, для которых проверяется подписка                         |
 | `ACCESS_BLOCK_TEMPLATE`         | Файл шаблона блокировки                                          |
-| `SUBSCRIPTION_AMOUNT`           | Сумма ежемесячного взноса (руб.)                                 |
+| `SUBSCRIPTION_FUND_AMOUNT`      | Фондовый взнос (руб.) — отображается в UI и попадает в ledger    |
+| `SUBSCRIPTION_TAX_AMOUNT`       | Налоги (руб.) — часть счёта клиенту, не в ledger                 |
+| `SUBSCRIPTION_MAINTENANCE_AMOUNT` | Содержание сайта / ФОТ (руб.) — часть счёта, не в ledger       |
+| `SUBSCRIPTION_AMOUNT`           | Устаревшее поле; fallback для `SUBSCRIPTION_FUND_AMOUNT`         |
 | `PAYMENT_DESCRIPTION`           | Назначение платежа в банке; плейсхолдер `{SITE_NAME}`            |
 | `BILLING_PERIOD_MODE`           | `calendar_month` / `registration` / `anchor_month`                 |
 | `BILLING_ANCHOR_SOURCE`         | Для `anchor_month`: день регистрации или фиксированный день      |

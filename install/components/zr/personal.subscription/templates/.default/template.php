@@ -67,9 +67,20 @@ endif;
 
     <?php if (!empty($arResult['SHOW_PAYMENT_BLOCK'])): ?>
         <div class="zr-paidaccess-personal__payment">
+            <p class="zr-paidaccess-personal__amount-label">Фондовый взнос</p>
             <div class="zr-paidaccess-personal__amount">
                 <?= htmlspecialcharsbx($arResult['AMOUNT_FORMATTED'] ?? '') ?> ₽
             </div>
+            <?php if (!empty($arResult['SHOW_AMOUNT_BREAKDOWN'])): ?>
+                <p class="zr-paidaccess-personal__charge-total">
+                    К оплате: <?= htmlspecialcharsbx($arResult['CHARGE_TOTAL_FORMATTED'] ?? '') ?> ₽
+                </p>
+                <ul class="zr-paidaccess-personal__breakdown">
+                    <li>Налоги — <?= htmlspecialcharsbx($arResult['TAX_AMOUNT_FORMATTED'] ?? '') ?> ₽</li>
+                    <li>Содержание сайта (ФОТ) — <?= htmlspecialcharsbx($arResult['MAINTENANCE_AMOUNT_FORMATTED'] ?? '') ?> ₽</li>
+                    <li>Фондовый взнос — <?= htmlspecialcharsbx($arResult['AMOUNT_FORMATTED'] ?? '') ?> ₽</li>
+                </ul>
+            <?php endif; ?>
 
             <?php if (!empty($arResult['PAYMENT_ERROR'])): ?>
                 <div class="zr-paidaccess-error-box">

@@ -7,6 +7,7 @@ use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 
 class PayBlockPageRenderer
 {
@@ -39,7 +40,7 @@ class PayBlockPageRenderer
             }
         }
 
-        $amount = PaidAccessCore::getSubscriptionAmount($siteId);
+        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
         $billingPeriod = SubscriptionPaymentService::getCurrentBillingPeriod($userId, $siteId);
         $billingPeriodLabel = BillingPolicy::formatPeriodLabel($billingPeriod, $siteId);
         $paymentPageErrorText = PaidAccessCore::getPaymentPageErrorText($siteId);

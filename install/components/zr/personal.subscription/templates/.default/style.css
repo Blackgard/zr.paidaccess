@@ -56,10 +56,29 @@
     border-top: 1px solid #eef1f5;
 }
 
+.zr-paidaccess-personal__amount-label {
+    margin: 0 0 4px;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
 .zr-paidaccess-personal__amount {
     font-size: 1.35rem;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+}
+
+.zr-paidaccess-personal__charge-total {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.zr-paidaccess-personal__breakdown {
+    margin: 0 0 16px;
+    padding-left: 1.2rem;
+    font-size: 0.9rem;
+    color: #6b7280;
 }
 
 .zr-paidaccess-personal__pay-widget,

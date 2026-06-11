@@ -10,6 +10,7 @@ use Zr\PaidAccess\Gateway\GatewayTestService;
 use Zr\PaidAccess\Log\AuditLogService;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Payment\PaymentRepository;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 
 /**
  * Единая точка записи движений средств фонда.
@@ -43,9 +44,9 @@ class FundMovementService
         $siteId = FundPaymentSiteResolver::resolveForPayment($payment);
         $fund = FundService::ensureDefaultFund($siteId);
         $fundId = (int)$fund['ID'];
-        $amount = (float)($payment['AMOUNT'] ?? 0);
+        $amount = SubscriptionAmountBreakdown::resolveFundAmountFromPayment($payment);
         if ($amount <= 0) {
-            throw new \RuntimeException('Сумма платежа должна быть больше нуля');
+            throw new \RuntimeException('Сумма фондового взноса должна быть больше нуля');
         }
 
         $userId = (int)($payment['USER_ID'] ?? 0);
@@ -95,7 +96,7 @@ class FundMovementService
         $payment = PaymentRepository::getById($paymentId);
         $amount = (float)($income['AMOUNT'] ?? 0);
         if ($amount <= 0 && $payment) {
-            $amount = (float)($payment['AMOUNT'] ?? 0);
+            $amount = SubscriptionAmountBreakdown::resolveFundAmountFromPayment($payment);
         }
         if ($amount <= 0) {
             return 0;

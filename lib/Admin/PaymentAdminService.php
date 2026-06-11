@@ -14,6 +14,7 @@ use Zr\PaidAccess\Payment\PaymentCancellationService;
 use Zr\PaidAccess\Payment\PaymentCompletionService;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 use Zr\PaidAccess\Subscription\SubscriptionService;
 use Zr\PaidAccess\Tables\PaymentTable;
 
@@ -242,13 +243,14 @@ class PaymentAdminService
         $wasGrantingAccess = $existing && PaymentStatus::grantsAccess((string)$existing['STATUS']);
         $willGrantAccess = PaymentStatus::grantsAccess($status);
 
-        $fields = [
+        $amountBreakdown = SubscriptionAmountBreakdown::forManualPaymentAmount($amount);
+
+        $fields = array_merge([
             'USER_ID' => $userId,
             'BILLING_PERIOD' => $billingPeriod,
-            'AMOUNT' => $amount,
             'CURRENCY' => $currency,
             'DESCRIPTION' => $description !== '' ? $description : 'Ручной платёж (админка)',
-        ];
+        ], $amountBreakdown->toPaymentAmountFields());
 
         if ($isNew) {
             $fields['GATEWAY_CODE'] = self::MANUAL_GATEWAY_CODE;
@@ -387,6 +389,6 @@ class PaymentAdminService
 
     public static function getDefaultAmount($siteId = null)
     {
-        return PaidAccessCore::getSubscriptionAmount($siteId);
+        return PaidAccessCore::getSubscriptionChargeTotal($siteId);
     }
 }

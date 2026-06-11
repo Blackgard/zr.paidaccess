@@ -10,6 +10,7 @@ use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Subscription\BillingPolicy;
+use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
 use Zr\PaidAccess\Tools\Logger;
 
 class SubscriptionPaymentService
@@ -57,21 +58,18 @@ class SubscriptionPaymentService
             );
         }
 
-        $amount = PaidAccessCore::getSubscriptionAmount($siteId);
-        $currency = 'RUB';
-        $description = PaidAccessCore::getPaymentDescription($siteId);
+        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
 
-        $modulePaymentId = PaymentRepository::create([
+        $modulePaymentId = PaymentRepository::create(array_merge([
             'USER_ID' => $userId,
-            'AMOUNT' => $amount,
-            'CURRENCY' => $currency,
+            'CURRENCY' => 'RUB',
             'ORDER_ID' => 'PA-TMP-' . $userId . '-' . time(),
             'BILLING_PERIOD' => $billingPeriod,
             'GATEWAY_CODE' => (string)$gatewayRow['PROVIDER'],
             'GATEWAY_ID' => (int)$gatewayRow['ID'],
-            'DESCRIPTION' => $description,
+            'DESCRIPTION' => PaidAccessCore::getPaymentDescription($siteId),
             'STATUS' => PaymentStatus::PENDING,
-        ]);
+        ], $breakdown->toPaymentAmountFields()));
 
         $orderAccountNumber = 'PA-' . $modulePaymentId . '-' . $billingPeriod;
 

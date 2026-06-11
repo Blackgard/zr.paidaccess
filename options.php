@@ -53,11 +53,29 @@ $arStructureOptions = [
                     . '<a href="/bitrix/admin/zr_paidaccess_gateways.php">Настройки → Платёжный доступ → Платёжные шлюзы</a>. '
                     . 'По умолчанию таблица пустая — создайте шлюз и отметьте «Использовать по умолчанию».',
             ],
-            'SUBSCRIPTION_AMOUNT' => [
-                'TITLE' => 'Сумма ежемесячного взноса (руб.)',
+            'SUBSCRIPTION_FUND_AMOUNT' => [
+                'TITLE' => 'Фондовый взнос (руб.)',
                 'TYPE' => 'text',
-                'DEFAULT' => PaidAccessCore::DEFAULT_SUBSCRIPTION_AMOUNT,
+                'DEFAULT' => PaidAccessCore::DEFAULT_SUBSCRIPTION_FUND_AMOUNT,
                 'WIDTH' => 10,
+            ],
+            'SUBSCRIPTION_TAX_AMOUNT' => [
+                'TITLE' => 'Налоги (руб.)',
+                'TYPE' => 'text',
+                'DEFAULT' => PaidAccessCore::DEFAULT_SUBSCRIPTION_TAX_AMOUNT,
+                'WIDTH' => 10,
+            ],
+            'SUBSCRIPTION_MAINTENANCE_AMOUNT' => [
+                'TITLE' => 'Содержание сайта / ФОТ (руб.)',
+                'TYPE' => 'text',
+                'DEFAULT' => PaidAccessCore::DEFAULT_SUBSCRIPTION_MAINTENANCE_AMOUNT,
+                'WIDTH' => 10,
+            ],
+            'NOTE_SUBSCRIPTION_AMOUNT_BREAKDOWN' => [
+                'TYPE' => 'note',
+                'TEXT' => 'Клиенту выставляется счёт на сумму: фондовый взнос + налоги + ФОТ. '
+                    . 'В учётный фонд и в интерфейсе модуля попадает только фондовый взнос. '
+                    . 'Пример: 1000 + 130 + 300 = 1430 ₽ к оплате.',
             ],
             'PAYMENT_DESCRIPTION' => [
                 'TITLE' => 'Назначение платежа в банке',

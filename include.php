@@ -41,6 +41,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Gateway\Dto\WebhookHandleResult' => 'lib/Gateway/Dto/WebhookHandleResult.php',
     'Zr\PaidAccess\Subscription\SubscriptionService' => 'lib/subscription/SubscriptionService.php',
     'Zr\PaidAccess\Subscription\BillingPolicy' => 'lib/subscription/BillingPolicy.php',
+    'Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown' => 'lib/subscription/SubscriptionAmountBreakdown.php',
     'Zr\PaidAccess\Subscription\BillingDebtService' => 'lib/subscription/BillingDebtService.php',
     'Zr\PaidAccess\Subscription\BillingDebtAgent' => 'lib/subscription/BillingDebtAgent.php',
     'Zr\PaidAccess\Subscription\SubscriptionReminderService' => 'lib/subscription/SubscriptionReminderService.php',

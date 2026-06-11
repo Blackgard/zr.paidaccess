@@ -21,6 +21,12 @@ class PaidAccessCore
     public const OPTION_ACCESS_RESTRICTED_GROUPS = 'ACCESS_RESTRICTED_GROUPS';
     public const OPTION_ACCESS_BLOCK_TEMPLATE = 'ACCESS_BLOCK_TEMPLATE';
     public const OPTION_SUBSCRIPTION_AMOUNT = 'SUBSCRIPTION_AMOUNT';
+    /** Фондовый взнос (отображается в UI и попадает в ledger) */
+    public const OPTION_SUBSCRIPTION_FUND_AMOUNT = 'SUBSCRIPTION_FUND_AMOUNT';
+    /** Налоги (часть счёта клиенту, не в ledger) */
+    public const OPTION_SUBSCRIPTION_TAX_AMOUNT = 'SUBSCRIPTION_TAX_AMOUNT';
+    /** ФОТ / содержание сайта (часть счёта, не в ledger) */
+    public const OPTION_SUBSCRIPTION_MAINTENANCE_AMOUNT = 'SUBSCRIPTION_MAINTENANCE_AMOUNT';
     /** Режим расчётного периода: calendar_month | anchor_month | registration */
     public const OPTION_BILLING_PERIOD_MODE = 'BILLING_PERIOD_MODE';
     /** Источник дня оплаты: registration | fixed */
@@ -74,6 +80,9 @@ class PaidAccessCore
     public const BILLING_SHORT_MONTH_PREVIOUS = 'previous';
 
     public const DEFAULT_SUBSCRIPTION_AMOUNT = '1000';
+    public const DEFAULT_SUBSCRIPTION_FUND_AMOUNT = '1000';
+    public const DEFAULT_SUBSCRIPTION_TAX_AMOUNT = '130';
+    public const DEFAULT_SUBSCRIPTION_MAINTENANCE_AMOUNT = '300';
     public const DEFAULT_BILLING_PERIOD_MODE = self::BILLING_PERIOD_MODE_CALENDAR_MONTH;
     public const DEFAULT_BILLING_ANCHOR_SOURCE = self::BILLING_ANCHOR_SOURCE_REGISTRATION;
     public const DEFAULT_BILLING_FIXED_DAY = '1';
@@ -147,12 +156,72 @@ class PaidAccessCore
         );
     }
 
+    /**
+     * Фондовый взнос — основная сумма в UI и ledger.
+     */
+    public static function getSubscriptionFundAmount(?string $siteId = null): float
+    {
+        $raw = self::getOptionByCode(
+            self::OPTION_SUBSCRIPTION_FUND_AMOUNT,
+            '',
+            $siteId
+        );
+        $amount = self::parseAmountOption($raw);
+        if ($amount > 0) {
+            return $amount;
+        }
+
+        return self::parseAmountOption(
+            self::getOptionByCode(self::OPTION_SUBSCRIPTION_AMOUNT, self::DEFAULT_SUBSCRIPTION_AMOUNT, $siteId),
+            (float)self::DEFAULT_SUBSCRIPTION_FUND_AMOUNT
+        );
+    }
+
+    public static function getSubscriptionTaxAmount(?string $siteId = null): float
+    {
+        $raw = self::getOptionByCode(self::OPTION_SUBSCRIPTION_TAX_AMOUNT, '', $siteId);
+        if (trim($raw) === '') {
+            return 0.0;
+        }
+
+        return self::parseAmountOption($raw);
+    }
+
+    public static function getSubscriptionMaintenanceAmount(?string $siteId = null): float
+    {
+        $raw = self::getOptionByCode(self::OPTION_SUBSCRIPTION_MAINTENANCE_AMOUNT, '', $siteId);
+        if (trim($raw) === '') {
+            return 0.0;
+        }
+
+        return self::parseAmountOption($raw);
+    }
+
+    /**
+     * Полная сумма к оплате клиентом (Init в банке).
+     */
+    public static function getSubscriptionChargeTotal(?string $siteId = null): float
+    {
+        $total = self::getSubscriptionFundAmount($siteId)
+            + self::getSubscriptionTaxAmount($siteId)
+            + self::getSubscriptionMaintenanceAmount($siteId);
+
+        return $total > 0 ? $total : self::getSubscriptionFundAmount($siteId);
+    }
+
+    /**
+     * Фондовый взнос (alias для UI).
+     */
     public static function getSubscriptionAmount(?string $siteId = null): float
     {
-        $raw = self::getOptionByCode(self::OPTION_SUBSCRIPTION_AMOUNT, self::DEFAULT_SUBSCRIPTION_AMOUNT, $siteId);
-        $amount = (float)str_replace(',', '.', $raw);
+        return self::getSubscriptionFundAmount($siteId);
+    }
 
-        return $amount > 0 ? $amount : (float)self::DEFAULT_SUBSCRIPTION_AMOUNT;
+    protected static function parseAmountOption(string $raw, float $fallback = 0.0): float
+    {
+        $amount = (float)str_replace(',', '.', trim($raw));
+
+        return $amount >= 0 ? $amount : $fallback;
     }
 
     public static function getBillingPeriodMode(?string $siteId = null): string

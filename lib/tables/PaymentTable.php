@@ -44,6 +44,15 @@ class PaymentTable extends DataManager
             (new FloatField('AMOUNT'))
                 ->configureRequired(),
 
+            /** Фондовый взнос (ledger) */
+            (new FloatField('FUND_AMOUNT')),
+
+            /** Налоги (часть счёта, не в ledger) */
+            (new FloatField('TAX_AMOUNT')),
+
+            /** ФОТ / содержание сайта (часть счёта, не в ledger) */
+            (new FloatField('MAINTENANCE_AMOUNT')),
+
             (new StringField('CURRENCY'))
                 ->configureRequired()
                 ->configureDefaultValue('RUB')
