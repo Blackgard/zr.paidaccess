@@ -83,6 +83,18 @@ class ModuleOptionsProvider
     /**
      * @return array<string, string>
      */
+    public static function getPaymentDuplicateOrderPolicyOptions(): array
+    {
+        return [
+            PaidAccessCore::PAYMENT_DUPLICATE_ORDER_FAIL => 'Перевести платёж в статус «Ошибка»',
+            PaidAccessCore::PAYMENT_DUPLICATE_ORDER_IGNORE => 'Оставить «Ожидает оплаты» (только журнал и сообщение)',
+            PaidAccessCore::PAYMENT_DUPLICATE_ORDER_REUSE => 'Привязать существующий платёж в T-Bank (CheckOrder)',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
     public static function getBillingShortMonthPolicyOptions(): array
     {
         return [

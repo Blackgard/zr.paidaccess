@@ -45,6 +45,11 @@ class PaidAccessCore
     public const OPTION_PAYMENT_PAGE_ERROR_TEXT = 'PAYMENT_PAGE_ERROR_TEXT';
     /** Способ оплаты на сайте: qr_sbp | payment_button */
     public const OPTION_PAYMENT_WIDGET_MODE = 'PAYMENT_WIDGET_MODE';
+    /**
+     * Поведение при ответе T-Bank Init: order_id уже существует (ErrorCode 8).
+     * fail | ignore | reuse
+     */
+    public const OPTION_PAYMENT_DUPLICATE_ORDER_POLICY = 'PAYMENT_DUPLICATE_ORDER_POLICY';
     /** Назначение платежа в банке; поддерживает плейсхолдер {SITE_NAME} */
     public const OPTION_PAYMENT_DESCRIPTION = 'PAYMENT_DESCRIPTION';
     /** Письмо пользователю при ошибке оплаты */
@@ -94,6 +99,11 @@ class PaidAccessCore
     public const PAYMENT_WIDGET_MODE_QR_SBP = 'qr_sbp';
     public const PAYMENT_WIDGET_MODE_PAYMENT_BUTTON = 'payment_button';
     public const DEFAULT_PAYMENT_WIDGET_MODE = self::PAYMENT_WIDGET_MODE_QR_SBP;
+    public const PAYMENT_DUPLICATE_ORDER_FAIL = 'fail';
+    public const PAYMENT_DUPLICATE_ORDER_IGNORE = 'ignore';
+    /** Привязать существующий платёж в T-Bank через CheckOrder */
+    public const PAYMENT_DUPLICATE_ORDER_REUSE = 'reuse';
+    public const DEFAULT_PAYMENT_DUPLICATE_ORDER_POLICY = self::PAYMENT_DUPLICATE_ORDER_FAIL;
     public const DEFAULT_PAYMENT_DESCRIPTION = 'Ежемесячный взнос подписки — {SITE_NAME}';
     public const DEFAULT_MAIL_NOTIFY_PAYMENT_FAILED = 'Y';
     public const DEFAULT_MAIL_NOTIFY_SUBSCRIPTION_DEBT = 'Y';
@@ -401,6 +411,25 @@ class PaidAccessCore
     public static function isPaymentWidgetButtonMode(?string $siteId = null): bool
     {
         return self::getPaymentWidgetMode($siteId) === self::PAYMENT_WIDGET_MODE_PAYMENT_BUTTON;
+    }
+
+    public static function getPaymentDuplicateOrderPolicy(?string $siteId = null): string
+    {
+        $policy = self::getOptionByCode(
+            self::OPTION_PAYMENT_DUPLICATE_ORDER_POLICY,
+            self::DEFAULT_PAYMENT_DUPLICATE_ORDER_POLICY,
+            $siteId
+        );
+
+        if (in_array($policy, [
+            self::PAYMENT_DUPLICATE_ORDER_FAIL,
+            self::PAYMENT_DUPLICATE_ORDER_IGNORE,
+            self::PAYMENT_DUPLICATE_ORDER_REUSE,
+        ], true)) {
+            return $policy;
+        }
+
+        return self::DEFAULT_PAYMENT_DUPLICATE_ORDER_POLICY;
     }
 
     public static function getGatewayTestAmount(?string $siteId = null): float

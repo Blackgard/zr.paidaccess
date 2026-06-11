@@ -63,6 +63,13 @@ class TinkoffGateway implements PaymentGatewayInterface
         return self::CODE;
     }
 
+    public function recoverDuplicateOrder(InitPaymentRequest $request): InitPaymentResult
+    {
+        $this->bindClientLogContext($request);
+
+        return TinkoffDuplicateOrderRecovery::recover($this->client, $request);
+    }
+
     public function initPayment(InitPaymentRequest $request): InitPaymentResult
     {
         $this->bindClientLogContext($request);
@@ -232,6 +239,13 @@ class TinkoffGateway implements PaymentGatewayInterface
                 '',
                 self::buildRedirectHtml($init->paymentUrl, false),
                 '',
+                $init->rawResponse
+            );
+        }
+
+        if (!$init->success && $init->rawResponse !== '') {
+            return InitPaymentResult::fail(
+                $init->errorMessage !== '' ? $init->errorMessage : 'Init failed',
                 $init->rawResponse
             );
         }

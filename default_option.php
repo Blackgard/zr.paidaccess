@@ -9,6 +9,7 @@ $zr_paidaccess_default_option = [
     'SUBSCRIPTION_MAINTENANCE_AMOUNT_s1' => '300',
     'PAYMENT_DESCRIPTION_s1' => 'Ежемесячный взнос подписки — {SITE_NAME}',
     'PAYMENT_WIDGET_MODE_s1' => 'qr_sbp',
+    'PAYMENT_DUPLICATE_ORDER_POLICY_s1' => 'fail',
     'PAYMENT_PAGE_ERROR_TEXT_s1' => 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.',
     'BILLING_PERIOD_MODE_s1' => 'calendar_month',
     'BILLING_ANCHOR_SOURCE_s1' => 'registration',
