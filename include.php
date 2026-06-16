@@ -11,6 +11,8 @@ $moduleId = 'zr.paidaccess';
 \Bitrix\Main\Loader::registerAutoLoadClasses($moduleId, [
     'Zr\PaidAccess\PaidAccessCore' => 'classes/general/PaidAccessCore.php',
     'Zr\PaidAccess\Access\AccessBlockHandler' => 'lib/access/AccessBlockHandler.php',
+    'Zr\PaidAccess\Access\DocumentConsentControl' => 'lib/access/DocumentConsentControl.php',
+    'Zr\PaidAccess\Access\DocumentConsentTemplate' => 'lib/access/DocumentConsentTemplate.php',
     'Zr\PaidAccess\Access\RegistrationPaymentHandler' => 'lib/access/RegistrationPaymentHandler.php',
     'Zr\PaidAccess\Access\AccessControl' => 'lib/access/AccessControl.php',
     'Zr\PaidAccess\Access\AccessTemplate' => 'lib/access/AccessTemplate.php',
@@ -84,6 +86,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\PublicUi\MemberListService' => 'lib/Public/MemberListService.php',
     'Zr\PaidAccess\PublicUi\FundWalletService' => 'lib/Public/FundWalletService.php',
     'Zr\PaidAccess\PublicUi\FundContributorService' => 'lib/Public/FundContributorService.php',
+    'Zr\PaidAccess\PublicUi\DocumentConsentViewService' => 'lib/Public/DocumentConsentViewService.php',
     'Zr\PaidAccess\Gateway\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',
     'Zr\PaidAccess\Enum\PaymentStatus' => 'lib/enum/PaymentStatus.php',
     'Zr\PaidAccess\Enum\SubscriptionStatus' => 'lib/enum/SubscriptionStatus.php',
@@ -102,7 +105,9 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Fund\FundExpenseAllocationRepository' => 'lib/Fund/FundExpenseAllocationRepository.php',
     'Zr\PaidAccess\Fund\FundExpenseParticipantResolver' => 'lib/Fund/FundExpenseParticipantResolver.php',
     'Zr\PaidAccess\Admin\FundAdminService' => 'lib/Admin/FundAdminService.php',
+    'Zr\PaidAccess\Admin\DocumentAdminService' => 'lib/Admin/DocumentAdminService.php',
     'Zr\PaidAccess\Install\FundInstaller' => 'lib/install/FundInstaller.php',
+    'Zr\PaidAccess\Install\DocumentInstaller' => 'lib/install/DocumentInstaller.php',
     'Zr\PaidAccess\Tables\GatewayTable' => 'lib/tables/GatewayTable.php',
     'Zr\PaidAccess\Tables\PaymentTable' => 'lib/tables/PaymentTable.php',
     'Zr\PaidAccess\Tables\GatewayTransactionTable' => 'lib/tables/GatewayTransactionTable.php',
@@ -110,7 +115,16 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Tables\FundTable' => 'lib/tables/FundTable.php',
     'Zr\PaidAccess\Tables\FundMovementTable' => 'lib/tables/FundMovementTable.php',
     'Zr\PaidAccess\Tables\FundExpenseAllocationTable' => 'lib/tables/FundExpenseAllocationTable.php',
+    'Zr\PaidAccess\Tables\RequiredDocumentTable' => 'lib/tables/RequiredDocumentTable.php',
+    'Zr\PaidAccess\Tables\RequiredDocumentVersionTable' => 'lib/tables/RequiredDocumentVersionTable.php',
+    'Zr\PaidAccess\Tables\DocumentAcceptanceTable' => 'lib/tables/DocumentAcceptanceTable.php',
     'Zr\PaidAccess\Tables\TableInstaller' => 'lib/tables/TableInstaller.php',
+    'Zr\PaidAccess\Document\RequiredDocumentRepository' => 'lib/Document/RequiredDocumentRepository.php',
+    'Zr\PaidAccess\Document\RequiredDocumentVersionRepository' => 'lib/Document/RequiredDocumentVersionRepository.php',
+    'Zr\PaidAccess\Document\DocumentAcceptanceRepository' => 'lib/Document/DocumentAcceptanceRepository.php',
+    'Zr\PaidAccess\Document\DocumentConsentService' => 'lib/Document/DocumentConsentService.php',
+    'Zr\PaidAccess\Document\DocumentVersionService' => 'lib/Document/DocumentVersionService.php',
+    'Zr\PaidAccess\Document\DocumentConsentPageRenderer' => 'lib/Document/DocumentConsentPageRenderer.php',
 ]);
 
 \Zr\PaidAccess\Gateway\Provider\GatewayProviderLoader::registerAutoload($moduleId);

@@ -135,6 +135,15 @@
     margin-top: 6px;
 }
 
+.zr-paidaccess-admin .zr-document-version-body-preview {
+    max-width: 640px;
+    padding: 12px 14px;
+    border: 1px solid #dce7ed;
+    border-radius: 4px;
+    background: #fafbfc;
+    line-height: 1.5;
+}
+
 .zr-paidaccess-fund-summary {
     display: flex;
     align-items: center;

@@ -11,6 +11,7 @@ namespace Zr\PaidAccess\Options;
 use Bitrix\Main\GroupTable;
 use Zr\PaidAccess\Access\AccessControl;
 use Zr\PaidAccess\Access\AccessTemplate;
+use Zr\PaidAccess\Access\DocumentConsentTemplate;
 use Zr\PaidAccess\PaidAccessCore;
 
 /**
@@ -44,6 +45,14 @@ class ModuleOptionsProvider
     public static function getAvailableBlockTemplates(): array
     {
         return AccessTemplate::getAvailableTemplates();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getAvailableDocumentConsentTemplates(): array
+    {
+        return DocumentConsentTemplate::getAvailableTemplates();
     }
 
     /**

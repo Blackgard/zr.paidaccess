@@ -20,6 +20,9 @@ class PaidAccessCore
     public const OPTION_MODULE_ACTIVE = 'MODULE_ACTIVE';
     public const OPTION_ACCESS_RESTRICTED_GROUPS = 'ACCESS_RESTRICTED_GROUPS';
     public const OPTION_ACCESS_BLOCK_TEMPLATE = 'ACCESS_BLOCK_TEMPLATE';
+    /** Проверка согласия с обязательными документами */
+    public const OPTION_DOCUMENT_CONSENT_ENABLED = 'DOCUMENT_CONSENT_ENABLED';
+    public const OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'DOCUMENT_CONSENT_BLOCK_TEMPLATE';
     public const OPTION_SUBSCRIPTION_AMOUNT = 'SUBSCRIPTION_AMOUNT';
     /** Фондовый взнос (отображается в UI и попадает в ledger) */
     public const OPTION_SUBSCRIPTION_FUND_AMOUNT = 'SUBSCRIPTION_FUND_AMOUNT';
@@ -125,6 +128,8 @@ class PaidAccessCore
     public const DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT = '3';
     public const TEMPLATES_RELATIVE_PATH = '/local/php_interface/zr.paidaccess';
     public const DEFAULT_BLOCK_TEMPLATE = 'template_need_paid.php';
+    public const DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'template_document_consent.php';
+    public const DEFAULT_DOCUMENT_CONSENT_ENABLED = 'Y';
 
     /** Группы по умолчанию для проверки подписки (ID через запятую) */
     public const DEFAULT_ACCESS_RESTRICTED_GROUPS = '2';
@@ -170,6 +175,24 @@ class PaidAccessCore
         return self::getOptionByCode(
             self::OPTION_ACCESS_BLOCK_TEMPLATE,
             self::DEFAULT_BLOCK_TEMPLATE,
+            $siteId
+        );
+    }
+
+    public static function isDocumentConsentEnabled(?string $siteId = null): bool
+    {
+        return self::getOptionByCode(
+            self::OPTION_DOCUMENT_CONSENT_ENABLED,
+            self::DEFAULT_DOCUMENT_CONSENT_ENABLED,
+            $siteId
+        ) === 'Y';
+    }
+
+    public static function getDocumentConsentBlockTemplate(?string $siteId = null): string
+    {
+        return self::getOptionByCode(
+            self::OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
+            self::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
             $siteId
         );
     }

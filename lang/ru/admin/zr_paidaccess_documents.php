@@ -1,0 +1,16 @@
+<?php
+
+$MESS['ZR_PAIDACCESS_DOCUMENTS_TITLE'] = 'Обязательные документы';
+$MESS['ZR_PAIDACCESS_DOCUMENT_ADD'] = 'Добавить документ';
+$MESS['ZR_PAIDACCESS_DOCUMENT_EDIT_TITLE'] = 'Документ';
+$MESS['ZR_PAIDACCESS_COL_TITLE'] = 'Название';
+$MESS['ZR_PAIDACCESS_COL_CODE'] = 'Код';
+$MESS['ZR_PAIDACCESS_COL_SITE'] = 'Сайт';
+$MESS['ZR_PAIDACCESS_COL_CURRENT_VERSION'] = 'Текущая версия';
+$MESS['ZR_PAIDACCESS_COL_REQUIRED'] = 'Обязательный';
+$MESS['ZR_PAIDACCESS_COL_ACTIVE'] = 'Активен';
+$MESS['ZR_PAIDACCESS_COL_ID'] = 'ID';
+$MESS['ZR_PAIDACCESS_ALL_SITES'] = 'Все сайты';
+$MESS['ZR_PAIDACCESS_YES'] = 'Да';
+$MESS['ZR_PAIDACCESS_NO'] = 'Нет';
+$MESS['ZR_PAIDACCESS_EDIT'] = 'Редактировать';

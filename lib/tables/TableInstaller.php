@@ -4,6 +4,7 @@ namespace Zr\PaidAccess\Tables;
 
 use Bitrix\Main\Application;
 use Bitrix\Main\ORM\Data\DataManager;
+use Zr\PaidAccess\Install\DocumentInstaller;
 use Zr\PaidAccess\Install\GatewayInstaller;
 use Zr\PaidAccess\Install\GatewayTransactionInstaller;
 use Zr\PaidAccess\Install\PaymentInstaller;
@@ -32,6 +33,14 @@ class TableInstaller
         self::createTableIfNotExists(FundExpenseAllocationTable::class);
     }
 
+    public static function ensureDocumentTables(): void
+    {
+        self::createTableIfNotExists(RequiredDocumentTable::class);
+        self::createTableIfNotExists(RequiredDocumentVersionTable::class);
+        self::createTableIfNotExists(DocumentAcceptanceTable::class);
+        DocumentInstaller::ensureSchema();
+    }
+
     public static function install(): void
     {
         self::createTableIfNotExists(GatewayTable::class);
@@ -42,6 +51,7 @@ class TableInstaller
         GatewayTransactionInstaller::ensureSchema();
         self::createTableIfNotExists(SubscriptionTable::class);
         self::ensureFundTables();
+        self::ensureDocumentTables();
     }
 
     public static function uninstall(): void
@@ -74,6 +84,18 @@ class TableInstaller
 
         if ($connection->isTableExists(FundTable::getTableName())) {
             $connection->dropTable(FundTable::getTableName());
+        }
+
+        if ($connection->isTableExists(DocumentAcceptanceTable::getTableName())) {
+            $connection->dropTable(DocumentAcceptanceTable::getTableName());
+        }
+
+        if ($connection->isTableExists(RequiredDocumentVersionTable::getTableName())) {
+            $connection->dropTable(RequiredDocumentVersionTable::getTableName());
+        }
+
+        if ($connection->isTableExists(RequiredDocumentTable::getTableName())) {
+            $connection->dropTable(RequiredDocumentTable::getTableName());
         }
     }
 
