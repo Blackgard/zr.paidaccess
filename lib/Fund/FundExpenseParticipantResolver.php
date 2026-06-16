@@ -47,11 +47,14 @@ class FundExpenseParticipantResolver
             }
         }
 
+        $allocationByUser = FundExpenseAllocationRepository::sumByUserGrouped($fundId);
+
         $participantIds = [];
         foreach ($totalsByUser as $userId => $totals) {
+            $allocated = (float)($allocationByUser[$userId]['amount'] ?? 0);
             $net = FundBalanceService::calculateAvailableBalance(
                 (float)$totals['income'],
-                (float)$totals['expense']
+                (float)$totals['expense'] + $allocated
             );
             if ($net > 0) {
                 $participantIds[(int)$userId] = (int)$userId;
