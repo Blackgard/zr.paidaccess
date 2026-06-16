@@ -292,13 +292,11 @@ class FundMovementRepository
             $dateStr = $dateCreate->format('d.m.Y');
         }
 
-        $transactionRef = (string)($row['ORDER_ID'] ?? '');
-        if ($transactionRef === '') {
-            $transactionRef = (string)($row['EXTERNAL_REF'] ?? '');
-        }
-        if ($transactionRef === '') {
-            $transactionRef = 'FM-' . (int)($row['ID'] ?? 0);
-        }
+        $transactionRef = self::buildWalletTransactionRef(
+            (int)($row['ID'] ?? 0),
+            (string)($row['ORDER_ID'] ?? ''),
+            (string)($row['EXTERNAL_REF'] ?? '')
+        );
 
         $payerName = '';
         if ($isIncome && (string)($row['SOURCE'] ?? '') === FundMovementSource::PAYMENT) {
@@ -314,11 +312,34 @@ class FundMovementRepository
             'ID' => (int)($row['ID'] ?? 0),
             'TYPE' => $type,
             'TRANSACTION_REF' => $transactionRef,
+            'EXTERNAL_REF' => (string)($row['EXTERNAL_REF'] ?? ''),
             'DATE' => $dateStr,
             'PAYER_NAME' => $payerName,
             'AMOUNT' => $amount,
             'AMOUNT_FORMATTED' => FundBalanceService::formatRubles($amount),
             'IS_INCOME' => $isIncome,
         ];
+    }
+
+    public static function buildWalletTransactionRef(int $movementId, string $orderId, string $externalRef): string
+    {
+        if ($orderId !== '') {
+            return $orderId;
+        }
+
+        if ($externalRef !== '' && self::isCompactTransactionRef($externalRef)) {
+            return $externalRef;
+        }
+
+        return 'FM-' . max(0, $movementId);
+    }
+
+    private static function isCompactTransactionRef(string $ref): bool
+    {
+        if (preg_match('#^https?://#i', $ref)) {
+            return false;
+        }
+
+        return mb_strlen($ref) <= 48;
     }
 }

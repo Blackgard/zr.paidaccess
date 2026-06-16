@@ -36,19 +36,31 @@ $items = $arResult['ITEMS'] ?? [];
             $isIncome = !empty($item['IS_INCOME']);
             $amountClass = $isIncome ? 'color_green' : 'color_red';
             $amountPrefix = $isIncome ? '+' : '−';
+            $transactionRef = (string)($item['TRANSACTION_REF'] ?? '');
+            $externalRef = (string)($item['EXTERNAL_REF'] ?? '');
+            $isExternalUrl = $externalRef !== '' && preg_match('#^https?://#i', $externalRef);
+            $cellTitle = $externalRef !== '' && $externalRef !== $transactionRef ? $externalRef : $transactionRef;
             ?>
             <div class="wallet__inner">
-                <div class="wallet__col wc_1">
-                    <?= htmlspecialcharsbx((string)($item['TRANSACTION_REF'] ?? '')) ?>
+                <div class="wallet__col wc_1" title="<?= htmlspecialcharsbx($cellTitle) ?>">
+                    <span class="wallet__cell-text"><?= htmlspecialcharsbx($transactionRef) ?></span>
+                    <?php if ($isExternalUrl && $externalRef !== $transactionRef): ?>
+                        <a class="wallet__cell-link"
+                           href="<?= htmlspecialcharsbx($externalRef) ?>"
+                           target="_blank"
+                           rel="noopener noreferrer">документ</a>
+                    <?php endif; ?>
                 </div>
                 <div class="wallet__col wc_7">
-                    <?= htmlspecialcharsbx((string)($item['DATE'] ?? '')) ?>
+                    <span class="wallet__cell-text"><?= htmlspecialcharsbx((string)($item['DATE'] ?? '')) ?></span>
                 </div>
                 <div class="wallet__col wc_2">
-                    <?= htmlspecialcharsbx((string)($item['PAYER_NAME'] ?? '')) ?>
+                    <span class="wallet__cell-text"><?= htmlspecialcharsbx((string)($item['PAYER_NAME'] ?? '')) ?></span>
                 </div>
                 <div class="wallet__col wc_4 <?= htmlspecialcharsbx($amountClass) ?>">
-                    <?= $amountPrefix ?><?= htmlspecialcharsbx((string)($item['AMOUNT_FORMATTED'] ?? '0')) ?> ₽
+                    <span class="wallet__cell-text">
+                        <?= $amountPrefix ?><?= htmlspecialcharsbx((string)($item['AMOUNT_FORMATTED'] ?? '0')) ?> ₽
+                    </span>
                 </div>
             </div>
         <?php endforeach; ?>

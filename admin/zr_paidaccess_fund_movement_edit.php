@@ -111,7 +111,7 @@ $allocationModeLabel = $allocationModeTitles[$allocationMode] ?? $allocationMode
 if ($allocationMode === PaidAccessCore::FUND_EXPENSE_ALLOCATION_MODE_RANDOM) {
     $allocationModeLabel .= ' (N=' . PaidAccessCore::getFundExpenseRandomParticipantCount($fundSiteId) . ')';
 }
-$settingsUrl = '/bitrix/admin/settings.php?mid=' . urlencode($moduleId) . '&lang=' . urlencode($languageId);
+$settingsUrl = '/bitrix/admin/settings.php?mid=zr.paidaccess&lang=' . urlencode($languageId);
 $isExpenseSelected = (string)$formValues['TYPE'] === FundMovementType::EXPENSE;
 
 $aTabs = [

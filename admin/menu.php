@@ -37,6 +37,7 @@ return [
                 'more_url' => [
                     'zr_paidaccess_fund_edit.php',
                     'zr_paidaccess_fund_movement_edit.php',
+                    'zr_paidaccess_fund_expense_view.php',
                 ],
             ],
             [
