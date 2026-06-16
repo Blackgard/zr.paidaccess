@@ -27,7 +27,7 @@ endif;
     <?php foreach ($pendingDocuments as $document): ?>
         <div class="zr-document-consent-item">
             <div class="zr-document-consent-item__title"><?= htmlspecialcharsbx((string)$document['TITLE']) ?></div>
-            <div class="zr-document-consent-item__meta">Версия <?= (int)$document['VERSION'] ?></div>
+            <div class="zr-document-consent-item__meta"><?= htmlspecialcharsbx(\Zr\PaidAccess\Document\DocumentVersionService::formatVersionLabel((string)$document['VERSION'])) ?></div>
             <?php if (($document['FILE_URL'] ?? '') !== ''): ?>
                 <a href="<?= htmlspecialcharsbx((string)$document['FILE_URL']) ?>" target="_blank" rel="noopener noreferrer">Открыть документ</a>
             <?php endif; ?>

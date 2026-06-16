@@ -9,6 +9,8 @@
  * @var string $paymentPageErrorText
  */
 
+use Bitrix\Main\Loader;
+use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 
 if (!defined('B_PROLOG_INCLUDED')) {
@@ -16,6 +18,9 @@ if (!defined('B_PROLOG_INCLUDED')) {
 }
 
 $showBreakdown = $breakdown->chargeTotal > $breakdown->fundAmount;
+$periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
+$siteId = PaidAccessCore::normalizeSiteId();
+$footerText = PaidAccessCore::getBlockPageFooterText($siteId);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -23,137 +28,195 @@ $showBreakdown = $breakdown->chargeTotal > $breakdown->fundAmount;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Оплата подписки</title>
-    <link rel="stylesheet" href="/local/modules/zr.paidaccess/install/assets/payment-button.css">
     <style>
-        * { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f4f6f8;
-            color: #1a1a1a;
             padding: 16px;
+            font: 14px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1a1a1a;
+            background: #f4f6f8;
         }
-        .zr-paidaccess-block {
-            max-width: 520px;
-            width: 100%;
-            padding: 40px 32px;
+        .wrap { width: 100%; max-width: 520px; }
+        .card {
             background: #fff;
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-            text-align: center;
+            padding: 32px 28px;
         }
-        .zr-paidaccess-block h1 {
-            margin: 0 0 12px;
-            font-size: 1.35rem;
+        .badge {
+            display: inline-block;
+            margin-bottom: 12px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            background: #eff6ff;
+            color: #1d4ed8;
         }
-        .zr-paidaccess-block p {
-            margin: 0 0 16px;
+        .badge--err { background: #f3f4f6; color: #4b5563; }
+        h1 { margin: 0 0 12px; font-size: 1.35rem; font-weight: 600; }
+        .lead { margin: 0 0 16px; color: #555; font-size: 14px; line-height: 1.5; }
+        .lead strong { color: #1a1a1a; }
+        .err {
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+        .info {
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #555;
+            font-size: 14px;
             line-height: 1.5;
-            color: #555;
         }
-        .zr-paidaccess-amount {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #1a1a1a;
-        }
-        .zr-paidaccess-amount-label {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-        .zr-paidaccess-charge-total {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 16px 0 8px;
-        }
-        .zr-paidaccess-breakdown {
-            text-align: left;
-            margin: 0 auto 20px;
-            max-width: 320px;
-            font-size: 0.9rem;
-            color: #555;
-        }
-        .zr-paidaccess-breakdown li {
-            margin: 4px 0;
-        }
-        .zr-paidaccess-info {
-            color: #555;
-            text-align: left;
+        .sum {
+            padding: 16px;
+            border-radius: 10px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
             margin-bottom: 16px;
         }
-        .zr-paidaccess-error-box {
-            text-align: left;
-            margin: 20px 0 0;
-            padding: 16px 18px;
-            border-radius: 8px;
-            background: #fdecea;
-            border: 1px solid #f5c6cb;
+        .sum__label {
+            margin: 0 0 4px;
+            font-size: 0.9rem;
+            color: #6b7280;
         }
-        .zr-paidaccess-error-box__title {
-            margin: 0 0 8px;
-            font-weight: 600;
-            color: #c0392b;
-        }
-        .zr-paidaccess-error-box__text {
+        .sum__amount {
             margin: 0;
-            line-height: 1.55;
-            color: #7f2a22;
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #1a1a1a;
         }
-        .zr-paidaccess-pay {
-            width: 100%;
-            text-align: left;
+        .sum__period { margin: 8px 0 0; font-size: 0.9rem; color: #6b7280; }
+        .rows { list-style: none; margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid #e5e7eb; }
+        .rows li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 4px 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .rows li span:last-child { color: #1a1a1a; font-weight: 500; font-variant-numeric: tabular-nums; }
+        .rows li.total {
             margin-top: 8px;
+            padding-top: 10px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
         }
-        .zr-paidaccess-pay form {
-            margin: 0 auto;
+        .rows li.total span:last-child { font-weight: 600; color: #1a1a1a; }
+        .pay { padding-top: 16px; border-top: 1px solid #e5e7eb; }
+        .pay__hint { margin: 0 0 12px; text-align: center; font-size: 0.9rem; color: #6b7280; }
+        .zr-paidaccess-pay form { margin: 0; }
+        .zr-paidaccess-pay-action { width: 100%; margin: 0; }
+        .zr-paidaccess-pay-btn--tbank {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 20px;
+            border: 1px solid #111827;
+            border-radius: 10px;
+            background: #111827;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            line-height: 1.2;
         }
+        .zr-paidaccess-pay-btn--tbank:hover { background: #1f2937; color: #fff; text-decoration: none; }
+        .zr-paidaccess-pay-btn__logo { width: 22px; height: 22px; filter: brightness(0) invert(1); }
+        .zr-paidaccess-qr { text-align: center; }
         .zr-paidaccess-qr img {
-            display: block;
-            margin: 0 auto 12px;
+            max-width: 100%;
+            height: auto;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        .page-footer {
+            margin-top: 16px;
+            padding: 0 4px;
+            text-align: center;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #6b7280;
         }
     </style>
 </head>
 <body>
-<div class="zr-paidaccess-block<?= $hasPaymentError ? ' zr-paidaccess-block--error' : '' ?>">
-    <h1><?= $hasPaymentError ? 'Ошибка оплаты' : 'Доступ ограничен' ?></h1>
-
-    <?php if ($hasPaymentError): ?>
-        <div class="zr-paidaccess-error-box">
-            <p class="zr-paidaccess-error-box__title">Не удалось открыть оплату</p>
-            <div class="zr-paidaccess-error-box__text"><?= nl2br(htmlspecialcharsbx($paymentPageErrorText)) ?></div>
-        </div>
-    <?php else: ?>
-        <p>Для продолжения работы с сайтом оплатите ежемесячный взнос за период <strong><?= htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod) ?></strong>.</p>
-
-        <?php if (!empty($infoMessages)): ?>
-            <div class="zr-paidaccess-info">
-                <?php foreach ($infoMessages as $message): ?>
-                    <p><?= htmlspecialcharsbx($message) ?></p>
-                <?php endforeach; ?>
-            </div>
+<div class="wrap">
+    <div class="card">
+        <?php if ($hasPaymentError): ?>
+            <span class="badge badge--err">Ошибка</span>
+            <h1>Не удалось открыть оплату</h1>
+            <div class="err"><?= nl2br(htmlspecialcharsbx($paymentPageErrorText)) ?></div>
         <?php else: ?>
-            <div class="zr-paidaccess-amount-label">Фондовый взнос</div>
-            <div class="zr-paidaccess-amount"><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</div>
-            <?php if ($showBreakdown): ?>
-                <div class="zr-paidaccess-charge-total">
-                    К оплате: <?= number_format($breakdown->chargeTotal, 0, '.', ' ') ?> ₽
+            <span class="badge">Оплата подписки</span>
+            <h1>Доступ ограничен</h1>
+            <p class="lead">
+                Для продолжения работы с сайтом оплатите ежемесячный взнос за период <strong><?= $periodText ?></strong>.
+            </p>
+
+            <?php if (!empty($infoMessages)): ?>
+                <div class="info">
+                    <?php foreach ($infoMessages as $message): ?>
+                        <p style="margin:0 0 6px"><?= htmlspecialcharsbx($message) ?></p>
+                    <?php endforeach; ?>
                 </div>
-                <ul class="zr-paidaccess-breakdown">
-                    <li>Налоги — <?= number_format($breakdown->taxAmount, 0, '.', ' ') ?> ₽</li>
-                    <li>Содержание сайта (ФОТ) — <?= number_format($breakdown->maintenanceAmount, 0, '.', ' ') ?> ₽</li>
-                    <li>Фондовый взнос — <?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</li>
-                </ul>
+            <?php else: ?>
+                <div class="sum">
+                    <?php if ($showBreakdown): ?>
+                        <p class="sum__label">К оплате</p>
+                        <p class="sum__amount"><?= number_format($breakdown->chargeTotal, 0, '.', ' ') ?> ₽</p>
+                        <p class="sum__period">Период: <?= $periodText ?></p>
+                        <ul class="rows">
+                            <li><span>Налоги</span><span><?= number_format($breakdown->taxAmount, 0, '.', ' ') ?> ₽</span></li>
+                            <li><span>Содержание сайта (ФОТ)</span><span><?= number_format($breakdown->maintenanceAmount, 0, '.', ' ') ?> ₽</span></li>
+                            <li><span>Средства в учредительный фонд</span><span><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</span></li>
+                            <li class="total"><span>Итого</span><span><?= number_format($breakdown->chargeTotal, 0, '.', ' ') ?> ₽</span></li>
+                        </ul>
+                    <?php else: ?>
+                        <p class="sum__label">Фондовый взнос</p>
+                        <p class="sum__amount"><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</p>
+                        <p class="sum__period">Период: <?= $periodText ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="pay">
+                    <p class="pay__hint">Способ оплаты</p>
+                    <div class="zr-paidaccess-pay">
+                        <?php
+                        if (Loader::includeModule(PaidAccessCore::MODULE_ID)) {
+                            SubscriptionPaymentService::renderPaymentWidget($modulePaymentId);
+                        }
+                ?>
+                    </div>
+                </div>
             <?php endif; ?>
-            <div class="zr-paidaccess-pay">
-                <?php SubscriptionPaymentService::renderPaymentWidget($modulePaymentId); ?>
-            </div>
         <?php endif; ?>
+    </div>
+    <?php if ($footerText !== ''): ?>
+        <footer class="page-footer"><?= nl2br(htmlspecialcharsbx($footerText)) ?></footer>
     <?php endif; ?>
 </div>
 </body>

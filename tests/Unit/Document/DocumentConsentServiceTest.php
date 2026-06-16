@@ -28,22 +28,17 @@ final class DocumentConsentServiceTest extends TestCase
             ],
             [
                 'ID' => 20,
-                'VERSION' => 3,
+                'VERSION' => '1.02',
                 'BODY_HTML' => '<p>Текст</p>',
             ]
         );
 
         $this->assertSame(10, $item['DOCUMENT_ID']);
         $this->assertSame(20, $item['VERSION_ID']);
-        $this->assertSame(3, $item['VERSION']);
+        $this->assertSame('1.02', $item['VERSION']);
         $this->assertSame('Устав', $item['TITLE']);
         $this->assertSame('charter', $item['CODE']);
         $this->assertSame('<p>Текст</p>', $item['BODY_HTML']);
-    }
-
-    public function testGetNextVersionNumberStartsFromOneWhenNoDocument(): void
-    {
-        $this->assertSame(1, DocumentVersionService::getNextVersionNumber(0));
     }
 
     public function testResolveFileUrlReturnsNullWithoutFile(): void

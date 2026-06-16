@@ -138,6 +138,14 @@ class ModuleOptionsProvider
                 'COLS' => 120,
                 'NOTE' => 'Показывается при сбое создания платежа или получения QR. Технические детали пишутся только в журнал модуля.',
             ],
+            PaidAccessCore::OPTION_BLOCK_PAGE_FOOTER_TEXT => [
+                'TITLE' => 'Подвал страниц блокировки (контакты)',
+                'TYPE' => 'textarea',
+                'DEFAULT' => PaidAccessCore::DEFAULT_BLOCK_PAGE_FOOTER_TEXT,
+                'ROWS' => 4,
+                'COLS' => 120,
+                'NOTE' => 'Показывается внизу страницы согласия с документами и страницы оплаты подписки. Пустое значение — подвал скрыт.',
+            ],
         ];
     }
 

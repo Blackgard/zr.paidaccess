@@ -116,12 +116,14 @@ class DocumentConsentService
         return [
             'DOCUMENT_ID' => (int)$document['ID'],
             'VERSION_ID' => (int)$version['ID'],
-            'VERSION' => (int)$version['VERSION'],
+            'VERSION' => (string)$version['VERSION'],
             'TITLE' => (string)$document['TITLE'],
             'CODE' => (string)$document['CODE'],
             'FILE_URL' => DocumentVersionService::resolveFileUrl($version),
+            'FILE_EXT' => DocumentVersionService::resolveFileExtension($version),
+            'FILE_NAME' => DocumentVersionService::resolveFileName($version, (string)$document['TITLE']),
             'BODY_HTML' => (string)($version['BODY_HTML'] ?? ''),
-            'DATE_PUBLISH' => RequiredDocumentVersionRepository::getPublishDateFormatted($version),
+            'DATE_PUBLISH' => RequiredDocumentVersionRepository::getPublishDateFormatted($version, false),
         ];
     }
 }

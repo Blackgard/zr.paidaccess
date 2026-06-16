@@ -56,12 +56,13 @@ if ($isViewMode && ($versionRow === null || (int)$versionRow['DOCUMENT_ID'] !== 
 $documentTitle = (string)$document['TITLE'];
 $APPLICATION->SetTitle(
     $isViewMode
-        ? Loc::getMessage('ZR_PAIDACCESS_VERSION_VIEW_TITLE') . ' v' . (int)$versionRow['VERSION'] . ' — ' . $documentTitle
+        ? Loc::getMessage('ZR_PAIDACCESS_VERSION_VIEW_TITLE') . ' ' . DocumentVersionService::formatVersionLabel((string)$versionRow['VERSION']) . ' — ' . $documentTitle
         : Loc::getMessage('ZR_PAIDACCESS_VERSION_ADD_TITLE') . ': ' . $documentTitle
 );
 
 $formValues = [
     'BODY_HTML' => '',
+    'VERSION' => '',
 ];
 
 $message = null;
@@ -75,9 +76,11 @@ if (!$isViewMode && $request->isPost() && check_bitrix_sessid()) {
     $save = $request->getPost('save');
     if ($save !== null && $save !== '') {
         $formValues['BODY_HTML'] = (string)$request->getPost('BODY_HTML');
+        $formValues['VERSION'] = (string)$request->getPost('VERSION');
 
         try {
             $newVersionId = DocumentAdminService::publishVersion($documentId, [
+                'VERSION' => $formValues['VERSION'],
                 'BODY_HTML' => $formValues['BODY_HTML'],
             ]);
             LocalRedirect(
@@ -95,7 +98,10 @@ if (!$isViewMode && $request->isPost() && check_bitrix_sessid()) {
 }
 
 $fileUrl = $isViewMode ? DocumentVersionService::resolveFileUrl($versionRow) : null;
-$nextVersion = DocumentVersionService::getNextVersionNumber($documentId);
+$suggestedVersion = DocumentVersionService::getSuggestedVersion($documentId);
+if (!$isViewMode && ($formValues['VERSION'] ?? '') === '') {
+    $formValues['VERSION'] = $suggestedVersion;
+}
 
 $aTabs = [
     [
@@ -169,7 +175,7 @@ $tabControl->BeginNextTab();
                                 <?= Loc::getMessage('ZR_PAIDACCESS_COL_VERSION') ?>:
                             </td>
                             <td class="adm-detail-content-cell-r">
-                                <strong>v<?= (int)$versionRow['VERSION'] ?></strong>
+                                <strong><?= htmlspecialcharsbx(DocumentVersionService::formatVersionLabel((string)$versionRow['VERSION'])) ?></strong>
                             </td>
                         </tr>
                         <tr>
@@ -221,10 +227,18 @@ $tabControl->BeginNextTab();
                     <?php else: ?>
                         <tr>
                             <td class="adm-detail-content-cell-l">
-                                <?= Loc::getMessage('ZR_PAIDACCESS_NEXT_VERSION') ?>:
+                                <?= Loc::getMessage('ZR_PAIDACCESS_FIELD_VERSION') ?>:<span class="required">*</span>
                             </td>
                             <td class="adm-detail-content-cell-r">
-                                <strong>v<?= $nextVersion ?></strong>
+                                <input type="text"
+                                       name="VERSION"
+                                       class="adm-input"
+                                       maxlength="32"
+                                       required
+                                       value="<?= htmlspecialcharsbx((string)$formValues['VERSION']) ?>">
+                                <div class="adm-input-description">
+                                    <?= Loc::getMessage('ZR_PAIDACCESS_FIELD_VERSION_HINT', ['#SUGGESTED#' => $suggestedVersion]) ?>
+                                </div>
                             </td>
                         </tr>
                         <tr>

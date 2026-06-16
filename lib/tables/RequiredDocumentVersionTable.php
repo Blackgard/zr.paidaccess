@@ -30,8 +30,9 @@ class RequiredDocumentVersionTable extends DataManager
             (new IntegerField('DOCUMENT_ID'))
                 ->configureRequired(),
 
-            (new IntegerField('VERSION'))
-                ->configureRequired(),
+            (new StringField('VERSION'))
+                ->configureRequired()
+                ->addValidator(new LengthValidator(1, 32)),
 
             (new IntegerField('FILE_ID'))
                 ->configureNullable(),

@@ -114,6 +114,7 @@ class DocumentAdminService
         }
 
         $versionId = DocumentVersionService::publishVersion($documentId, [
+            'VERSION' => (string)($data['VERSION'] ?? ''),
             'FILE_ID' => $fileId,
             'BODY_HTML' => (string)($data['BODY_HTML'] ?? ''),
             'CREATED_BY' => $adminUserId,
@@ -158,6 +159,7 @@ class DocumentAdminService
             return '—';
         }
 
-        return 'v' . (int)$version['VERSION'] . ' (' . RequiredDocumentVersionRepository::getPublishDateFormatted($version) . ')';
+        return DocumentVersionService::formatVersionLabel((string)$version['VERSION'])
+            . ' (' . RequiredDocumentVersionRepository::getPublishDateFormatted($version) . ')';
     }
 }

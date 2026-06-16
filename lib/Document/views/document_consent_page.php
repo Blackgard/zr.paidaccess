@@ -8,6 +8,43 @@
 if (!defined('B_PROLOG_INCLUDED')) {
     define('B_PROLOG_INCLUDED', true);
 }
+
+use Zr\PaidAccess\Document\DocumentVersionService;
+
+$documentCount = count($pendingDocuments);
+
+/**
+ * @return string
+ */
+$resolveExtClass = static function (string $ext): string {
+    $ext = strtolower($ext);
+    if ($ext === 'pdf') {
+        return 'pdf';
+    }
+    if (in_array($ext, ['doc', 'docx'], true)) {
+        return 'doc';
+    }
+    if ($ext === 'txt') {
+        return 'txt';
+    }
+
+    return 'file';
+};
+
+/**
+ * @return string
+ */
+$resolveExtLabel = static function (array $document) use ($resolveExtClass): string {
+    $ext = (string)($document['FILE_EXT'] ?? '');
+    if ($ext !== '' && $ext !== 'file') {
+        return strtoupper($ext);
+    }
+    if ((string)($document['BODY_HTML'] ?? '') !== '') {
+        return 'HTML';
+    }
+
+    return 'DOC';
+};
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -16,154 +53,231 @@ if (!defined('B_PROLOG_INCLUDED')) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Согласие с документами</title>
     <style>
-        * { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f4f6f8;
-            color: #1a1a1a;
             padding: 16px;
+            font: 14px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #111827;
+            background: #f3f4f6;
         }
-        .zr-document-consent {
-            max-width: 640px;
-            width: 100%;
-            padding: 32px 28px;
+        .wrap { width: 100%; max-width: 520px; }
+        .card {
             background: #fff;
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 16px rgba(16,24,40,.06);
+            padding: 20px;
         }
-        .zr-document-consent h1 {
-            margin: 0 0 12px;
-            font-size: 1.35rem;
+        .badge {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            background: #fffbeb;
+            color: #92400e;
         }
-        .zr-document-consent__lead {
-            margin: 0 0 24px;
-            line-height: 1.5;
-            color: #555;
-        }
-        .zr-document-consent__error {
-            margin: 0 0 16px;
-            padding: 12px 14px;
+        h1 { margin: 0 0 6px; font-size: 1.15rem; font-weight: 700; }
+        .lead { margin: 0 0 16px; color: #6b7280; font-size: 13px; }
+        .err {
+            margin: 0 0 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             background: #fef2f2;
-            color: #b91c1c;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            font-size: 13px;
         }
-        .zr-document-item {
+        .list { list-style: none; margin: 0; padding: 0; }
+        .row {
             border: 1px solid #e5e7eb;
             border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #fafafa;
         }
-        .zr-document-item__title {
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-        .zr-document-item__meta {
-            font-size: 0.85rem;
-            color: #6b7280;
-            margin-bottom: 10px;
-        }
-        .zr-document-item__body {
-            font-size: 0.92rem;
-            color: #374151;
-            margin-bottom: 10px;
-            max-height: 180px;
-            overflow: auto;
-        }
-        .zr-document-item__link {
-            display: inline-block;
-            margin-bottom: 12px;
-            color: #2563eb;
-            text-decoration: none;
-        }
-        .zr-document-item__link:hover {
-            text-decoration: underline;
-        }
-        .zr-document-item__check {
+        .row.is-checked { background: #fff; border-color: #d1d5db; }
+        .row__open {
             display: flex;
+            align-items: center;
             gap: 10px;
-            align-items: flex-start;
-            font-size: 0.95rem;
+            text-decoration: none;
+            color: inherit;
+            min-width: 0;
         }
-        .zr-document-consent__submit {
-            margin-top: 20px;
+        .row__open:hover .row__name { color: #111827; text-decoration: underline; }
+        .ext {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            border: 1px solid #e5e7eb;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .ext--pdf { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+        .ext--doc { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        .ext--txt { background: #f9fafb; color: #6b7280; }
+        .row__main { flex: 1; min-width: 0; }
+        .row__name {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .row__meta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .row__body {
+            margin-top: 8px;
+            padding: 8px 10px;
+            max-height: 120px;
+            overflow: auto;
+            font-size: 12px;
+            color: #4b5563;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .check.is-locked { cursor: not-allowed; opacity: .55; }
+        .check input { width: 16px; height: 16px; margin: 0; flex-shrink: 0; accent-color: #111827; }
+        .check input:disabled { cursor: not-allowed; }
+        .check span { font-size: 12px; color: #4b5563; }
+        .hint { margin: 4px 0 0 24px; font-size: 11px; color: #9ca3af; }
+        .btn {
             width: 100%;
+            margin-top: 12px;
+            padding: 11px 16px;
             border: 0;
             border-radius: 8px;
-            padding: 14px 18px;
-            font-size: 1rem;
-            font-weight: 600;
+            background: #111827;
             color: #fff;
-            background: #2563eb;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
         }
-        .zr-document-consent__submit:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .empty {
+            padding: 16px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px dashed #e5e7eb;
         }
     </style>
 </head>
 <body>
-<div class="zr-document-consent">
-    <h1>Обязательные документы</h1>
-    <p class="zr-document-consent__lead">
-        Для продолжения работы с сайтом ознакомьтесь с документами ниже и подтвердите согласие.
-    </p>
+<div class="wrap">
+    <div class="card">
+        <span class="badge">Требуется действие</span>
+        <h1>Обязательные документы</h1>
+        <p class="lead">
+            Откройте каждый документ и подтвердите согласие
+            <?php if ($documentCount > 0): ?>
+                (<?= $documentCount ?>).
+            <?php else: ?>.
+            <?php endif; ?>
+        </p>
 
-    <?php if ($errorMessage !== ''): ?>
-        <div class="zr-document-consent__error"><?= htmlspecialcharsbx($errorMessage) ?></div>
-    <?php endif; ?>
+        <?php if ($errorMessage !== ''): ?>
+            <div class="err" role="alert"><?= htmlspecialcharsbx($errorMessage) ?></div>
+        <?php endif; ?>
 
-    <?php if ($pendingDocuments === []): ?>
-        <p>Нет документов, ожидающих подтверждения.</p>
-    <?php else: ?>
-        <form method="post" id="zr-document-consent-form">
-            <?= bitrix_sessid_post() ?>
-            <input type="hidden" name="back_url" value="<?= htmlspecialcharsbx($backUrl) ?>">
+        <?php if ($pendingDocuments === []): ?>
+            <div class="empty">Нет документов, ожидающих подтверждения.</div>
+        <?php else: ?>
+            <form method="post" id="zr-document-consent-form">
+                <?= bitrix_sessid_post() ?>
+                <input type="hidden" name="back_url" value="<?= htmlspecialcharsbx($backUrl) ?>">
 
-            <?php foreach ($pendingDocuments as $document): ?>
-                <div class="zr-document-item">
-                    <div class="zr-document-item__title">
-                        <?= htmlspecialcharsbx((string)$document['TITLE']) ?>
-                    </div>
-                    <div class="zr-document-item__meta">
-                        Версия <?= (int)$document['VERSION'] ?>
-                        <?php if (($document['DATE_PUBLISH'] ?? '') !== ''): ?>
-                            · опубликовано <?= htmlspecialcharsbx((string)$document['DATE_PUBLISH']) ?>
-                        <?php endif; ?>
-                    </div>
+                <ul class="list">
+                    <?php foreach ($pendingDocuments as $document): ?>
+                        <?php
+                        $fileUrl = (string)($document['FILE_URL'] ?? '');
+                        $bodyHtml = (string)($document['BODY_HTML'] ?? '');
+                        $hasFile = $fileUrl !== '';
+                        $hasBody = $bodyHtml !== '';
+                        $needsOpen = $hasFile || $hasBody;
+                        $extClass = $resolveExtClass((string)($document['FILE_EXT'] ?? ''));
+                        $extLabel = $resolveExtLabel($document);
+                        $displayName = (string)($document['FILE_NAME'] ?? $document['TITLE']);
+                        ?>
+                        <li class="row" data-doc-row data-needs-open="<?= $needsOpen ? 'Y' : 'N' ?>">
+                            <?php if ($hasFile): ?>
+                                <a class="row__open"
+                                   href="<?= htmlspecialcharsbx($fileUrl) ?>"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   data-doc-open>
+                                    <span class="ext ext--<?= htmlspecialcharsbx($extClass) ?>"><?= htmlspecialcharsbx($extLabel) ?></span>
+                                    <span class="row__main">
+                                        <span class="row__name"><?= htmlspecialcharsbx($displayName) ?></span>
+                                        <span class="row__meta"><?= htmlspecialcharsbx(DocumentVersionService::formatVersionLabel((string)$document['VERSION'])) ?><?php if (($document['DATE_PUBLISH'] ?? '') !== ''): ?> · <?= htmlspecialcharsbx((string)$document['DATE_PUBLISH']) ?><?php endif; ?></span>
+                                    </span>
+                                </a>
+                            <?php else: ?>
+                                <a class="row__open"
+                                   href="#"
+                                   data-doc-open
+                                   data-expand="Y">
+                                    <span class="ext ext--<?= htmlspecialcharsbx($extClass) ?>"><?= htmlspecialcharsbx($extLabel) ?></span>
+                                    <span class="row__main">
+                                        <span class="row__name"><?= htmlspecialcharsbx((string)$document['TITLE']) ?></span>
+                                        <span class="row__meta"><?= htmlspecialcharsbx(DocumentVersionService::formatVersionLabel((string)$document['VERSION'])) ?><?php if (($document['DATE_PUBLISH'] ?? '') !== ''): ?> · <?= htmlspecialcharsbx((string)$document['DATE_PUBLISH']) ?><?php endif; ?></span>
+                                    </span>
+                                </a>
+                                <?php if ($hasBody): ?>
+                                    <div class="row__body" data-doc-body hidden><?= $bodyHtml ?></div>
+                                <?php endif; ?>
+                            <?php endif; ?>
 
-                    <?php if (($document['FILE_URL'] ?? '') !== ''): ?>
-                        <a class="zr-document-item__link"
-                           href="<?= htmlspecialcharsbx((string)$document['FILE_URL']) ?>"
-                           target="_blank"
-                           rel="noopener noreferrer">Открыть документ</a>
-                    <?php endif; ?>
+                            <label class="check is-locked">
+                                <input type="checkbox"
+                                       name="version_ids[]"
+                                       value="<?= (int)$document['VERSION_ID'] ?>"
+                                       class="zr-consent-checkbox"
+                                       disabled>
+                                <span>Согласен(на) с условиями</span>
+                            </label>
+                            <?php if ($needsOpen): ?>
+                                <p class="hint" data-doc-hint>Сначала откройте документ</p>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
 
-                    <?php if (($document['BODY_HTML'] ?? '') !== ''): ?>
-                        <div class="zr-document-item__body"><?= $document['BODY_HTML'] ?></div>
-                    <?php endif; ?>
-
-                    <label class="zr-document-item__check">
-                        <input type="checkbox"
-                               name="version_ids[]"
-                               value="<?= (int)$document['VERSION_ID'] ?>"
-                               class="zr-document-consent-checkbox">
-                        <span>Ознакомлен(а) и согласен(на) с условиями документа</span>
-                    </label>
-                </div>
-            <?php endforeach; ?>
-
-            <button type="submit" class="zr-document-consent__submit" id="zr-document-consent-submit" disabled>
-                Подтвердить
-            </button>
-        </form>
-    <?php endif; ?>
+                <button type="submit" class="btn" id="zr-document-consent-submit" disabled>
+                    Подтвердить
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
 </div>
 <script>
 (function () {
@@ -171,12 +285,12 @@ if (!defined('B_PROLOG_INCLUDED')) {
     if (!form) {
         return;
     }
+
     var submitBtn = document.getElementById('zr-document-consent-submit');
-    var checkboxes = form.querySelectorAll('.zr-document-consent-checkbox');
 
     function updateSubmitState() {
         var allChecked = true;
-        checkboxes.forEach(function (checkbox) {
+        form.querySelectorAll('.zr-consent-checkbox').forEach(function (checkbox) {
             if (!checkbox.checked) {
                 allChecked = false;
             }
@@ -184,9 +298,50 @@ if (!defined('B_PROLOG_INCLUDED')) {
         submitBtn.disabled = !allChecked;
     }
 
-    checkboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', updateSubmitState);
+    form.querySelectorAll('[data-doc-row]').forEach(function (row) {
+        var openEl = row.querySelector('[data-doc-open]');
+        var checkbox = row.querySelector('.zr-consent-checkbox');
+        var checkLabel = row.querySelector('.check');
+        var hint = row.querySelector('[data-doc-hint]');
+        var needsOpen = row.getAttribute('data-needs-open') === 'Y';
+
+        function unlock() {
+            checkbox.disabled = false;
+            if (checkLabel) {
+                checkLabel.classList.remove('is-locked');
+            }
+            if (hint) {
+                hint.style.display = 'none';
+            }
+        }
+
+        if (!needsOpen) {
+            unlock();
+        } else if (openEl) {
+            openEl.addEventListener('click', function (event) {
+                if (openEl.getAttribute('data-expand') === 'Y') {
+                    event.preventDefault();
+                    var body = row.querySelector('[data-doc-body]');
+                    if (body) {
+                        body.hidden = !body.hidden;
+                        if (!body.hidden) {
+                            unlock();
+                        }
+                    } else {
+                        unlock();
+                    }
+                } else {
+                    unlock();
+                }
+            });
+        }
+
+        checkbox.addEventListener('change', function () {
+            row.classList.toggle('is-checked', checkbox.checked);
+            updateSubmitState();
+        });
     });
+
     updateSubmitState();
 })();
 </script>

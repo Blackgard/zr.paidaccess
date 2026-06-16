@@ -208,7 +208,7 @@ if ($message !== null) {
                             $fileUrl = DocumentVersionService::resolveFileUrl($version);
                             ?>
                             <tr>
-                                <td><a href="<?= htmlspecialcharsbx($versionUrl) ?>">v<?= (int)$version['VERSION'] ?></a></td>
+                                <td><a href="<?= htmlspecialcharsbx($versionUrl) ?>"><?= htmlspecialcharsbx(DocumentVersionService::formatVersionLabel((string)$version['VERSION'])) ?></a></td>
                                 <td><?= htmlspecialcharsbx(RequiredDocumentVersionRepository::getPublishDateFormatted($version)) ?></td>
                                 <td><?= ($version['IS_CURRENT'] ?? 'N') === 'Y' ? Loc::getMessage('ZR_PAIDACCESS_YES') : Loc::getMessage('ZR_PAIDACCESS_NO') ?></td>
                                 <td>

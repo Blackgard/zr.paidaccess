@@ -35,26 +35,42 @@ class RequiredDocumentVersionRepository
         return is_array($row) ? $row : null;
     }
 
-    public static function getMaxVersionNumber(int $documentId): int
+    public static function getLatestByDocumentId(int $documentId): ?array
     {
         if ($documentId <= 0) {
-            return 0;
+            return null;
         }
 
         $row = RequiredDocumentVersionTable::getList([
             'filter' => ['=DOCUMENT_ID' => $documentId],
-            'select' => ['VERSION'],
-            'order' => ['VERSION' => 'DESC'],
+            'order' => ['ID' => 'DESC'],
             'limit' => 1,
         ])->fetch();
 
-        return is_array($row) ? (int)$row['VERSION'] : 0;
+        return is_array($row) ? $row : null;
+    }
+
+    public static function versionExists(int $documentId, string $version): bool
+    {
+        if ($documentId <= 0 || $version === '') {
+            return false;
+        }
+
+        $row = RequiredDocumentVersionTable::getList([
+            'filter' => [
+                '=DOCUMENT_ID' => $documentId,
+                '=VERSION' => $version,
+            ],
+            'limit' => 1,
+        ])->fetch();
+
+        return is_array($row);
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    public static function getListByDocumentId(int $documentId, array $order = ['VERSION' => 'DESC']): array
+    public static function getListByDocumentId(int $documentId, array $order = ['ID' => 'DESC']): array
     {
         if ($documentId <= 0) {
             return [];
@@ -114,11 +130,11 @@ class RequiredDocumentVersionRepository
         }
     }
 
-    public static function getPublishDateFormatted(array $version): string
+    public static function getPublishDateFormatted(array $version, bool $withTime = true): string
     {
         $date = $version['DATE_PUBLISH'] ?? null;
         if ($date instanceof DateTime) {
-            return $date->format('d.m.Y H:i');
+            return $date->format($withTime ? 'd.m.Y H:i' : 'd.m.Y');
         }
 
         return '';

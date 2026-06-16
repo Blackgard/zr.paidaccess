@@ -46,6 +46,8 @@ class PaidAccessCore
     public const OPTION_PAYMENT_EMAIL_NOTIFY = 'PAYMENT_EMAIL_NOTIFY';
     /** Текст ошибки на странице оплаты (для пользователя) */
     public const OPTION_PAYMENT_PAGE_ERROR_TEXT = 'PAYMENT_PAGE_ERROR_TEXT';
+    /** Подвал страниц блокировки: согласие с документами и оплата */
+    public const OPTION_BLOCK_PAGE_FOOTER_TEXT = 'BLOCK_PAGE_FOOTER_TEXT';
     /** Способ оплаты на сайте: qr_sbp | payment_button */
     public const OPTION_PAYMENT_WIDGET_MODE = 'PAYMENT_WIDGET_MODE';
     /**
@@ -103,6 +105,7 @@ class PaidAccessCore
     public const DEFAULT_BILLING_GRACE_DAYS = '0';
     public const DEFAULT_PAYMENT_EMAIL_NOTIFY = 'Y';
     public const DEFAULT_PAYMENT_PAGE_ERROR_TEXT = 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.';
+    public const DEFAULT_BLOCK_PAGE_FOOTER_TEXT = 'Если что-то пошло не так, напишите администратору: admin@example.com';
     public const PAYMENT_WIDGET_MODE_QR_SBP = 'qr_sbp';
     public const PAYMENT_WIDGET_MODE_PAYMENT_BUTTON = 'payment_button';
     public const DEFAULT_PAYMENT_WIDGET_MODE = self::PAYMENT_WIDGET_MODE_QR_SBP;
@@ -369,6 +372,15 @@ class PaidAccessCore
         ));
 
         return $text !== '' ? $text : self::DEFAULT_PAYMENT_PAGE_ERROR_TEXT;
+    }
+
+    public static function getBlockPageFooterText(?string $siteId = null): string
+    {
+        return trim(self::getOptionByCode(
+            self::OPTION_BLOCK_PAGE_FOOTER_TEXT,
+            self::DEFAULT_BLOCK_PAGE_FOOTER_TEXT,
+            $siteId
+        ));
     }
 
     public static function getSiteDisplayName(?string $siteId = null): string

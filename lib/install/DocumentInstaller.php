@@ -12,10 +12,32 @@ use Zr\PaidAccess\Tables\RequiredDocumentVersionTable;
 class DocumentInstaller
 {
     private const OPTION_SCHEMA_INDEXES = 'SCHEMA_DOCUMENT_INDEXES';
+    private const OPTION_SCHEMA_VERSION_STRING = 'SCHEMA_DOCUMENT_VERSION_STRING';
 
     public static function ensureSchema(): void
     {
+        self::ensureVersionColumnString();
         self::ensureIndexes();
+    }
+
+    private static function ensureVersionColumnString(): void
+    {
+        if (Option::get(PaidAccessCore::MODULE_ID, self::OPTION_SCHEMA_VERSION_STRING, 'N') === 'Y') {
+            return;
+        }
+
+        $connection = Application::getConnection();
+        $table = RequiredDocumentVersionTable::getTableName();
+        if (!$connection->isTableExists($table)) {
+            return;
+        }
+
+        $helper = $connection->getSqlHelper();
+        $sql = 'ALTER TABLE ' . $helper->quote($table)
+            . ' MODIFY ' . $helper->quote('VERSION') . ' VARCHAR(32) NOT NULL';
+
+        $connection->queryExecute($sql);
+        Option::set(PaidAccessCore::MODULE_ID, self::OPTION_SCHEMA_VERSION_STRING, 'Y');
     }
 
     private static function ensureIndexes(): void

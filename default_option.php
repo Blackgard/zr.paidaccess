@@ -13,6 +13,7 @@ $zr_paidaccess_default_option = [
     'PAYMENT_WIDGET_MODE_s1' => 'qr_sbp',
     'PAYMENT_DUPLICATE_ORDER_POLICY_s1' => 'fail',
     'PAYMENT_PAGE_ERROR_TEXT_s1' => 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.',
+    'BLOCK_PAGE_FOOTER_TEXT_s1' => 'Если что-то пошло не так, напишите администратору: admin@example.com',
     'BILLING_PERIOD_MODE_s1' => 'calendar_month',
     'BILLING_ANCHOR_SOURCE_s1' => 'registration',
     'BILLING_FIXED_DAY_s1' => '1',
