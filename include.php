@@ -90,6 +90,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Enum\GatewayEventType' => 'lib/enum/GatewayEventType.php',
     'Zr\PaidAccess\Enum\FundMovementType' => 'lib/enum/FundMovementType.php',
     'Zr\PaidAccess\Enum\FundMovementSource' => 'lib/enum/FundMovementSource.php',
+    'Zr\PaidAccess\Enum\FundExpenseAllocationMode' => 'lib/enum/FundExpenseAllocationMode.php',
     'Zr\PaidAccess\Fund\Exception\InsufficientFundBalanceException' => 'lib/Fund/Exception/InsufficientFundBalanceException.php',
     'Zr\PaidAccess\Fund\FundRepository' => 'lib/Fund/FundRepository.php',
     'Zr\PaidAccess\Fund\FundMovementRepository' => 'lib/Fund/FundMovementRepository.php',
@@ -97,6 +98,9 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Fund\FundPaymentSiteResolver' => 'lib/Fund/FundPaymentSiteResolver.php',
     'Zr\PaidAccess\Fund\FundService' => 'lib/Fund/FundService.php',
     'Zr\PaidAccess\Fund\FundMovementService' => 'lib/Fund/FundMovementService.php',
+    'Zr\PaidAccess\Fund\FundExpenseAllocationService' => 'lib/Fund/FundExpenseAllocationService.php',
+    'Zr\PaidAccess\Fund\FundExpenseAllocationRepository' => 'lib/Fund/FundExpenseAllocationRepository.php',
+    'Zr\PaidAccess\Fund\FundExpenseParticipantResolver' => 'lib/Fund/FundExpenseParticipantResolver.php',
     'Zr\PaidAccess\Admin\FundAdminService' => 'lib/Admin/FundAdminService.php',
     'Zr\PaidAccess\Install\FundInstaller' => 'lib/install/FundInstaller.php',
     'Zr\PaidAccess\Tables\GatewayTable' => 'lib/tables/GatewayTable.php',
@@ -105,6 +109,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Tables\SubscriptionTable' => 'lib/tables/SubscriptionTable.php',
     'Zr\PaidAccess\Tables\FundTable' => 'lib/tables/FundTable.php',
     'Zr\PaidAccess\Tables\FundMovementTable' => 'lib/tables/FundMovementTable.php',
+    'Zr\PaidAccess\Tables\FundExpenseAllocationTable' => 'lib/tables/FundExpenseAllocationTable.php',
     'Zr\PaidAccess\Tables\TableInstaller' => 'lib/tables/TableInstaller.php',
 ]);
 

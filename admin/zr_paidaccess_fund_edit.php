@@ -12,6 +12,7 @@ use Bitrix\Main\UI\Extension;
 use Bitrix\Main\UI\Filter\Options as FilterOptions;
 use Bitrix\Main\UI\PageNavigation;
 use Zr\PaidAccess\Admin\FundAdminService;
+use Zr\PaidAccess\Enum\FundMovementSource;
 use Zr\PaidAccess\Enum\FundMovementType;
 use Zr\PaidAccess\Fund\FundMovementRepository;
 use Zr\PaidAccess\Fund\FundRepository;
@@ -194,12 +195,24 @@ if ($isEditMode) {
         $movementNav->getOffset()
     );
 
+    $movementIds = array_map(static fn (array $row): int => (int)($row['ID'] ?? 0), $movementItems);
+    $allocationsByMovement = FundAdminService::getAllocationsGroupedByMovementIds($movementIds);
+
     foreach ($movementItems as $movement) {
         $movementId = (int)$movement['ID'];
         $type = (string)($movement['TYPE'] ?? '');
         $amount = (float)($movement['AMOUNT'] ?? 0);
         $amountFormatted = number_format($amount, 0, '.', ' ') . ' ₽';
         $isIncome = $type === FundMovementType::INCOME;
+        $source = (string)($movement['SOURCE'] ?? '');
+        $allocations = $allocationsByMovement[$movementId] ?? [];
+        $participantsHtml = '—';
+        if ($type === FundMovementType::EXPENSE && $source === FundMovementSource::ADMIN) {
+            $summary = FundAdminService::formatMovementParticipantsSummary($movementId, $allocations);
+            $participantsHtml = '<a href="zr_paidaccess_fund_expense_view.php?ID=' . $movementId
+                . '&lang=' . htmlspecialcharsbx($languageId) . '">'
+                . htmlspecialcharsbx($summary) . '</a>';
+        }
 
         $movementRows[] = [
             'id' => $movementId,
@@ -213,6 +226,7 @@ if ($isEditMode) {
                 'SOURCE' => htmlspecialcharsbx(FundAdminService::getMovementSourceTitle((string)($movement['SOURCE'] ?? ''))),
                 'DESCRIPTION' => htmlspecialcharsbx((string)($movement['DESCRIPTION'] ?? '')),
                 'REFERENCE' => htmlspecialcharsbx(FundAdminService::formatMovementReference($movement)),
+                'PARTICIPANTS' => $participantsHtml,
             ],
         ];
     }
@@ -234,7 +248,8 @@ if ($isEditMode) {
             ['id' => 'AMOUNT', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_AMOUNT'), 'sort' => 'AMOUNT', 'default' => true],
             ['id' => 'SOURCE', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_MOVEMENT_SOURCE'), 'sort' => 'SOURCE', 'default' => true],
             ['id' => 'DESCRIPTION', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_DESCRIPTION'), 'default' => true],
-            ['id' => 'REFERENCE', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_REFERENCE'), 'default' => true],
+            ['id' => 'PARTICIPANTS', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_PARTICIPANTS'), 'default' => true],
+            ['id' => 'REFERENCE', 'name' => Loc::getMessage('ZR_PAIDACCESS_COL_REFERENCE'), 'default' => false],
         ],
         'ROWS' => $movementRows,
         'NAV_OBJECT' => $movementNav,

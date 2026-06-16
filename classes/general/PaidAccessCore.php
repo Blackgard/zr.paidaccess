@@ -69,6 +69,10 @@ class PaidAccessCore
     public const OPTION_LOG_LEVEL = 'LOG_LEVEL';
     /** Сумма тестового платежа шлюза (руб.), для проверки эквайринга */
     public const OPTION_GATEWAY_TEST_AMOUNT = 'GATEWAY_TEST_AMOUNT';
+    /** Распределение списания с фонда: even | random */
+    public const OPTION_FUND_EXPENSE_ALLOCATION_MODE = 'FUND_EXPENSE_ALLOCATION_MODE';
+    /** Сколько участников выбирать при random-распределении списания */
+    public const OPTION_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT = 'FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT';
     public const MAIL_EVENT_PAYMENT_PAID = 'ZR_PAIDACCESS_PAYMENT_PAID';
     public const MAIL_EVENT_PAYMENT_FAILED = 'ZR_PAIDACCESS_PAYMENT_FAILED';
     public const MAIL_EVENT_SUBSCRIPTION_DEBT = 'ZR_PAIDACCESS_SUBSCRIPTION_DEBT';
@@ -115,6 +119,10 @@ class PaidAccessCore
     public const DEFAULT_LOG_PATH = '/upload/logs/zr.paidaccess.log';
     public const DEFAULT_LOG_LEVEL = 'error';
     public const DEFAULT_GATEWAY_TEST_AMOUNT = '1';
+    public const FUND_EXPENSE_ALLOCATION_MODE_EVEN = 'even';
+    public const FUND_EXPENSE_ALLOCATION_MODE_RANDOM = 'random';
+    public const DEFAULT_FUND_EXPENSE_ALLOCATION_MODE = self::FUND_EXPENSE_ALLOCATION_MODE_EVEN;
+    public const DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT = '3';
     public const TEMPLATES_RELATIVE_PATH = '/local/php_interface/zr.paidaccess';
     public const DEFAULT_BLOCK_TEMPLATE = 'template_need_paid.php';
 
@@ -438,6 +446,36 @@ class PaidAccessCore
         $amount = (float)str_replace(',', '.', $raw);
 
         return $amount > 0 ? $amount : (float)self::DEFAULT_GATEWAY_TEST_AMOUNT;
+    }
+
+    public static function getFundExpenseAllocationMode(?string $siteId = null): string
+    {
+        $mode = self::getOptionByCode(
+            self::OPTION_FUND_EXPENSE_ALLOCATION_MODE,
+            self::DEFAULT_FUND_EXPENSE_ALLOCATION_MODE,
+            $siteId
+        );
+
+        if (in_array($mode, [
+            self::FUND_EXPENSE_ALLOCATION_MODE_EVEN,
+            self::FUND_EXPENSE_ALLOCATION_MODE_RANDOM,
+        ], true)) {
+            return $mode;
+        }
+
+        return self::DEFAULT_FUND_EXPENSE_ALLOCATION_MODE;
+    }
+
+    public static function getFundExpenseRandomParticipantCount(?string $siteId = null): int
+    {
+        $raw = self::getOptionByCode(
+            self::OPTION_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT,
+            self::DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT,
+            $siteId
+        );
+        $count = (int)$raw;
+
+        return $count > 0 ? $count : (int)self::DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT;
     }
 
     public static function isMailNotifyPaymentFailedEnabled(?string $siteId = null): bool

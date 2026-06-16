@@ -6,6 +6,8 @@ use Bitrix\Main\Type\DateTime;
 use Zr\PaidAccess\Enum\FundMovementSource;
 use Zr\PaidAccess\Enum\FundMovementType;
 use Zr\PaidAccess\Fund\FundBalanceService;
+use Zr\PaidAccess\Fund\FundExpenseAllocationRepository;
+use Zr\PaidAccess\Fund\FundExpenseAllocationService;
 use Zr\PaidAccess\Fund\FundMovementRepository;
 use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Fund\FundRepository;
@@ -279,5 +281,32 @@ class FundAdminService
     public static function getFundBalanceFormatted(int $fundId): string
     {
         return FundBalanceService::formatRubles(FundBalanceService::getAvailableBalance($fundId)) . ' ₽';
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getMovementAllocations(int $movementId): array
+    {
+        return FundExpenseAllocationService::getAllocationsForMovement($movementId);
+    }
+
+    public static function formatMovementParticipantsSummary(int $movementId, array $allocations = []): string
+    {
+        if ($allocations === []) {
+            $allocations = FundExpenseAllocationRepository::listByMovementId($movementId);
+        }
+
+        return FundExpenseAllocationService::formatAllocationSummary($allocations);
+    }
+
+    /**
+     * @param array<int, int> $movementIds
+     *
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public static function getAllocationsGroupedByMovementIds(array $movementIds): array
+    {
+        return FundExpenseAllocationRepository::listGroupedByMovementIds($movementIds);
     }
 }

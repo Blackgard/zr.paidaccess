@@ -29,6 +29,7 @@ class TableInstaller
     {
         self::createTableIfNotExists(FundTable::class);
         self::createTableIfNotExists(FundMovementTable::class);
+        self::createTableIfNotExists(FundExpenseAllocationTable::class);
     }
 
     public static function install(): void
@@ -65,6 +66,10 @@ class TableInstaller
 
         if ($connection->isTableExists(FundMovementTable::getTableName())) {
             $connection->dropTable(FundMovementTable::getTableName());
+        }
+
+        if ($connection->isTableExists(FundExpenseAllocationTable::getTableName())) {
+            $connection->dropTable(FundExpenseAllocationTable::getTableName());
         }
 
         if ($connection->isTableExists(FundTable::getTableName())) {

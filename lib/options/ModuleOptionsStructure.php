@@ -176,6 +176,28 @@ final class ModuleOptionsStructure
                         . 'В учётный фонд и в интерфейсе модуля попадает только фондовый взнос. '
                         . 'Пример: 1000 + 130 + 300 = 1430 ₽ к оплате.',
                 ],
+                'TITLE_FUND_EXPENSE_ALLOCATION' => [
+                    'TYPE' => 'title',
+                    'TEXT' => 'Списания с учредительного фонда',
+                ],
+                'FUND_EXPENSE_ALLOCATION_MODE' => [
+                    'TITLE' => 'Распределение суммы списания между участниками',
+                    'TYPE' => 'selectbox',
+                    'VALUES' => ModuleOptionsProvider::getFundExpenseAllocationModeOptions(),
+                    'DEFAULT' => PaidAccessCore::DEFAULT_FUND_EXPENSE_ALLOCATION_MODE,
+                ],
+                'FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT' => [
+                    'TITLE' => 'Участников при случайном распределении (N)',
+                    'TYPE' => 'text',
+                    'DEFAULT' => PaidAccessCore::DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT,
+                    'WIDTH' => 5,
+                ],
+                'NOTE_FUND_EXPENSE_ALLOCATION' => [
+                    'TYPE' => 'note',
+                    'TEXT' => 'При ручном списании с фонда в админке сумма делится между участниками с положительным вкладом. '
+                        . '«Равномерно» — на всех; «Случайно» — на N выбранных участников. '
+                        . 'Доли фиксируются в журнале движений фонда (только админка).',
+                ],
                 'TITLE_PAYMENT_BANK' => [
                     'TYPE' => 'title',
                     'TEXT' => 'Данные для банка',
