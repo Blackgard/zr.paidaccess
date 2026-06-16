@@ -68,6 +68,7 @@ local/modules/zr.paidaccess/
 │   ├── zr_paidaccess_funds.php
 │   ├── zr_paidaccess_fund_edit.php
 │   ├── zr_paidaccess_fund_movement_edit.php
+│   ├── zr_paidaccess_fund_expense_view.php
 │   ├── zr_paidaccess_gateways.php
 │   ├── zr_paidaccess_gateway_edit.php
 │   ├── zr_paidaccess_gateway_import.php
@@ -105,17 +106,18 @@ local/modules/zr.paidaccess/
 
 ## База данных (ORM)
 
-| Таблица                             | Класс                     | Назначение                                        |
-| ----------------------------------- | ------------------------- | ------------------------------------------------- |
-| `zr_paidaccess_payment`             | `PaymentTable`            | Платёж / взнос пользователя                       |
-| `zr_paidaccess_subscription`        | `SubscriptionTable`       | Состояние подписки пользователя                   |
-| `zr_paidaccess_gateway`             | `GatewayTable`            | Платёжные шлюзы (провайдер + JSON-опции)          |
-| `zr_paidaccess_gateway_transaction` | `GatewayTransactionTable` | Лог Init / GetQr / webhook по платежу             |
-| `zr_paidaccess_event_log`           | `EventLogTable`           | Журнал ошибок и событий модуля                    |
-| `zr_paidaccess_audit_log`           | `AuditLogTable`           | Аудит действий в админке                          |
-| `zr_paidaccess_notification_log`    | `NotificationLogTable`    | Лог отправленных уведомлений                      |
-| `zr_paidaccess_fund`                | `FundTable`               | Фонд (по умолчанию один на `SITE_ID`)             |
-| `zr_paidaccess_fund_movement`       | `FundMovementTable`       | Движения средств (ledger)                         |
+| Таблица                                 | Класс                        | Назначение                                 |
+| --------------------------------------- | ---------------------------- | ------------------------------------------ |
+| `zr_paidaccess_payment`                 | `PaymentTable`               | Платёж / взнос пользователя                |
+| `zr_paidaccess_subscription`            | `SubscriptionTable`          | Состояние подписки пользователя            |
+| `zr_paidaccess_gateway`                 | `GatewayTable`               | Платёжные шлюзы (провайдер + JSON-опции)   |
+| `zr_paidaccess_gateway_transaction`     | `GatewayTransactionTable`    | Лог Init / GetQr / webhook по платежу      |
+| `zr_paidaccess_event_log`               | `EventLogTable`              | Журнал ошибок и событий модуля             |
+| `zr_paidaccess_audit_log`               | `AuditLogTable`              | Аудит действий в админке                   |
+| `zr_paidaccess_notification_log`        | `NotificationLogTable`       | Лог отправленных уведомлений               |
+| `zr_paidaccess_fund`                    | `FundTable`                  | Фонд (по умолчанию один на `SITE_ID`)      |
+| `zr_paidaccess_fund_movement`           | `FundMovementTable`          | Движения средств (ledger)                  |
+| `zr_paidaccess_fund_expense_allocation` | `FundExpenseAllocationTable` | Доли участников в списании с фонда (админ) |
 
 Ключевые поля платежа (`zr_paidaccess_payment`):
 
@@ -141,44 +143,78 @@ local/modules/zr.paidaccess/
 
 ### Типы и источники движений
 
-| Поле `TYPE`   | Значение    | Смысл              |
-| ------------- | ----------- | ------------------ |
-| `income`      | поступление | Увеличивает баланс |
-| `expense`     | списание    | Уменьшает баланс   |
+| Поле `TYPE` | Значение    | Смысл              |
+| ----------- | ----------- | ------------------ |
+| `income`    | поступление | Увеличивает баланс |
+| `expense`   | списание    | Уменьшает баланс   |
 
-| Поле `SOURCE` | Когда создаётся                                      |
-| ------------- | ---------------------------------------------------- |
-| `payment`     | Оплаченный взнос участника                           |
-| `refund`      | Возврат ранее учтённого платежа                      |
-| `admin`       | Ручная операция в админке                            |
-| `system`      | Служебные корректировки (через API сервиса)          |
+| Поле `SOURCE` | Когда создаётся                             |
+| ------------- | ------------------------------------------- |
+| `payment`     | Оплаченный взнос участника                  |
+| `refund`      | Возврат ранее учтённого платежа             |
+| `admin`       | Ручная операция в админке                   |
+| `system`      | Служебные корректировки (через API сервиса) |
 
 ### Единая точка записи — `FundMovementService`
 
-| Метод                         | Назначение                                                                 |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `recordPaymentIncome($id)`    | Поступление от платежа (идемпотентно, skip тестовых `GT`)                  |
-| `recordPaymentRefund($id)`    | Списание при возврате (если было поступление)                              |
-| `recordManualIncome(...)`     | Ручное поступление (админка)                                               |
-| `recordExpense(...)`          | Списание с проверкой баланса (`InsufficientFundBalanceException`)          |
-| `tryRecordPaymentIncome/Refund` | Обёртки для хуков оплаты — не ломают основной поток при ошибке         |
+| Метод                           | Назначение                                                        |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `recordPaymentIncome($id)`      | Поступление от платежа (идемпотентно, skip тестовых `GT`)         |
+| `recordPaymentRefund($id)`      | Списание при возврате (если было поступление)                     |
+| `recordManualIncome(...)`       | Ручное поступление (админка)                                      |
+| `recordExpense(...)`            | Списание с проверкой баланса (`InsufficientFundBalanceException`) |
+| `tryRecordPaymentIncome/Refund` | Обёртки для хуков оплаты — не ломают основной поток при ошибке    |
 
 ### Когда создаются движения автоматически
 
-| Событие                              | Сервис                         | Движение        |
-| ------------------------------------ | ------------------------------ | --------------- |
-| Webhook `CONFIRMED` / оплата         | `PaymentCompletionService`     | income `payment` |
-| Webhook `REFUNDED`                   | `PaymentWebhookStatusService`  | expense `refund` |
-| Ручная смена статуса на «Возврат»    | `PaymentAdminService`          | expense `refund` |
-| Ручное подтверждение оплаты в админке| `PaymentCompletionService`     | income `payment` |
-| Обновление модуля (один раз)         | `FundInstaller::backfillMovements` | income по paid |
+| Событие                               | Сервис                             | Движение         |
+| ------------------------------------- | ---------------------------------- | ---------------- |
+| Webhook `CONFIRMED` / оплата          | `PaymentCompletionService`         | income `payment` |
+| Webhook `REFUNDED`                    | `PaymentWebhookStatusService`      | expense `refund` |
+| Ручная смена статуса на «Возврат»     | `PaymentAdminService`              | expense `refund` |
+| Ручное подтверждение оплаты в админке | `PaymentCompletionService`         | income `payment` |
+| Обновление модуля (один раз)          | `FundInstaller::backfillMovements` | income по paid   |
 
 Тестовые платежи шлюза (`BILLING_PERIOD=GT`) **не** попадают в фонд.
+
+### Распределение списаний между участниками
+
+При **ручном списании** из админки (`SOURCE=admin`, `TYPE=expense`) сумма одного движения в ledger делится между участниками с положительным остатком вклада. Доли сохраняются в `zr_paidaccess_fund_expense_allocation` (одна запись на участника).
+
+| Опция                                   | Значения          | Назначение                                      |
+| --------------------------------------- | ----------------- | ----------------------------------------------- |
+| `FUND_EXPENSE_ALLOCATION_MODE`          | `even` / `random` | Равномерно на всех или случайно на N участников |
+| `FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT` | число             | N при режиме `random` (по умолчанию 3)          |
+
+Сервис: `FundExpenseAllocationService` — выбор участников (`FundExpenseParticipantResolver`), расчёт долей в копейках, запись через `FundExpenseAllocationRepository`.
+
+Участник учитывается, если **остаток вклада > 0**: взносы − возвраты − уже списанные доли из allocation.
+
+Просмотр долей: `/bitrix/admin/zr_paidaccess_fund_expense_view.php?ID={movement_id}`.
+
+### Персональная статистика участника
+
+`FundContributorService::getContributorData($userId, $siteId)` — данные для шапки сайта и ЛК:
+
+| Поле                | Смысл                                        |
+| ------------------- | -------------------------------------------- |
+| `TOTAL_CONTRIBUTED` | Сумма взносов в фонд                         |
+| `TOTAL_REFUNDED`    | Возвраты по платежам                         |
+| `TOTAL_ALLOCATED`   | Списания с доли при расходах фонда           |
+| `NET_BALANCE`       | Остаток: взносы − возвраты − списания с доли |
 
 ### Публичный кошелёк
 
 `FundWalletService::getWalletData($siteId)` → баланс, число уникальных плательщиков, список движений для шаблона.  
 Компонент **`zr:fund.wallet`** — страница «Кошелёк учредительного фонда» (баланс + история `+`/`-`).
+
+Колонка «Транзакция» в истории:
+
+- для оплат — `ORDER_ID` (`PA-{id}-{period}`);
+- для ручных списаний — `FM-{movement_id}` (длинные URL из `EXTERNAL_REF` не выводятся в ячейку; ссылка «документ» при необходимости);
+- короткий `EXTERNAL_REF` (номер документа) — как идентификатор транзакции.
+
+Шаблон компонента подключает `style.css` с обрезкой длинного текста в ячейках таблицы.
 
 Пример:
 
@@ -220,19 +256,20 @@ $APPLICATION->IncludeComponent('zr:fund.wallet', '', [], false);
 
 Меню: **Сервисы → Платёжный доступ**.
 
-| Страница               | URL                                                  | Описание                                                                         |
-| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Подписчики             | `/bitrix/admin/zr_paidaccess_subscribers.php`        | Статусы подписок, оплата за текущий период                                       |
-| Платежи                | `/bitrix/admin/zr_paidaccess_payments.php`           | Список и фильтры                                                                 |
-| Редактирование платежа | `/bitrix/admin/zr_paidaccess_payment_edit.php`       | Ручные платежи, смена статуса, связь с фондом при paid/refund                    |
-| Фонды                  | `/bitrix/admin/zr_paidaccess_funds.php`              | Список фондов, баланс по ledger                                                  |
-| Редактирование фонда   | `/bitrix/admin/zr_paidaccess_fund_edit.php`          | Название, активность; вкладка «Движения»                                         |
-| Ручное движение        | `/bitrix/admin/zr_paidaccess_fund_movement_edit.php` | Поступление или списание (источник `admin`)                                      |
-| Шлюзы                  | `/bitrix/admin/zr_paidaccess_gateways.php`           | Список эквайрингов, экспорт/удаление                                             |
-| Редактирование шлюза   | `/bitrix/admin/zr_paidaccess_gateway_edit.php`       | Ключи T-Bank, тестовый платёж, Notification URL                                  |
-| Импорт шлюзов          | `/bitrix/admin/zr_paidaccess_gateway_import.php`     | Импорт JSON настроек                                                             |
-| Журнал                 | `/bitrix/admin/zr_paidaccess_logs.php`               | Вкладки: события, аудит, запросы шлюза; **очистка** журналов и файлового лога     |
-| Настройки              | `/bitrix/admin/settings.php?mid=zr.paidaccess`       | Сумма взноса, биллинг, логи, почта                                               |
+| Страница               | URL                                                  | Описание                                                                        |
+| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Подписчики             | `/bitrix/admin/zr_paidaccess_subscribers.php`        | Статусы подписок, оплата за текущий период                                      |
+| Платежи                | `/bitrix/admin/zr_paidaccess_payments.php`           | Список и фильтры                                                                |
+| Редактирование платежа | `/bitrix/admin/zr_paidaccess_payment_edit.php`       | Ручные платежи, смена статуса, связь с фондом при paid/refund                   |
+| Фонды                  | `/bitrix/admin/zr_paidaccess_funds.php`              | Список фондов, баланс по ledger                                                 |
+| Редактирование фонда   | `/bitrix/admin/zr_paidaccess_fund_edit.php`          | Название, активность; вкладка «Движения»                                        |
+| Ручное движение        | `/bitrix/admin/zr_paidaccess_fund_movement_edit.php` | Поступление или списание (источник `admin`); при списании — распределение долей |
+| Доли списания          | `/bitrix/admin/zr_paidaccess_fund_expense_view.php`  | Участники и суммы долей по ручному списанию                                     |
+| Шлюзы                  | `/bitrix/admin/zr_paidaccess_gateways.php`           | Список эквайрингов, экспорт/удаление                                            |
+| Редактирование шлюза   | `/bitrix/admin/zr_paidaccess_gateway_edit.php`       | Ключи T-Bank, тестовый платёж, Notification URL                                 |
+| Импорт шлюзов          | `/bitrix/admin/zr_paidaccess_gateway_import.php`     | Импорт JSON настроек                                                            |
+| Журнал                 | `/bitrix/admin/zr_paidaccess_logs.php`               | Вкладки: события, аудит, запросы шлюза; **очистка** журналов и файлового лога   |
+| Настройки              | `/bitrix/admin/settings.php?mid=zr.paidaccess`       | Сумма взноса, биллинг, логи, почта                                              |
 
 ---
 
@@ -240,11 +277,11 @@ $APPLICATION->IncludeComponent('zr:fund.wallet', '', [], false);
 
 Устанавливаются в `/local/components/zr/`:
 
-| Компонент                  | Назначение                                                                 |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `zr:personal.subscription` | Личный кабинет: статус подписки, кнопка оплаты                             |
-| `zr:member.payment.list`   | Список участников и статус оплаты (для модераторов)                      |
-| `zr:fund.wallet`           | Кошелёк фонда: баланс из ledger, история движений (`+` поступления / `-` списания) |
+| Компонент                  | Назначение                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `zr:personal.subscription` | Личный кабинет: статус подписки, кнопка оплаты                                                                                 |
+| `zr:member.payment.list`   | Список участников и статус оплаты (для модераторов)                                                                            |
+| `zr:fund.wallet`           | Кошелёк фонда: баланс из ledger, история движений (`+` поступления / `−` списания); компактный вывод идентификатора транзакции |
 
 Пример подключения подписки:
 
@@ -352,32 +389,34 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 
 Опции хранятся с суффиксом сайта: `OPTION_NAME_s1`, `OPTION_NAME_ru`. Чтение: `PaidAccessCore::getOptionByCode()` / специализированные геттеры.
 
-| Опция                           | Назначение                                                       |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `MODULE_ACTIVE`                 | Включить модуль                                                  |
-| `ACCESS_RESTRICTED_GROUPS`      | Группы, для которых проверяется подписка                         |
-| `ACCESS_BLOCK_TEMPLATE`         | Файл шаблона блокировки                                          |
-| `SUBSCRIPTION_FUND_AMOUNT`      | Фондовый взнос (руб.) — отображается в UI и попадает в ledger    |
-| `SUBSCRIPTION_TAX_AMOUNT`       | Налоги (руб.) — часть счёта клиенту, не в ledger                 |
-| `SUBSCRIPTION_MAINTENANCE_AMOUNT` | Содержание сайта / ФОТ (руб.) — часть счёта, не в ledger       |
-| `SUBSCRIPTION_AMOUNT`           | Устаревшее поле; fallback для `SUBSCRIPTION_FUND_AMOUNT`         |
-| `PAYMENT_DESCRIPTION`           | Назначение платежа в банке; плейсхолдер `{SITE_NAME}`            |
-| `BILLING_PERIOD_MODE`           | `calendar_month` / `registration` / `anchor_month`                 |
-| `BILLING_ANCHOR_SOURCE`         | Для `anchor_month`: день регистрации или фиксированный день      |
-| `BILLING_FIXED_DAY`             | Фиксированный день месяца (1–28)                                 |
-| `BILLING_SHORT_MONTH_POLICY`    | Поведение в коротких месяцах (`last_day` / `previous`)           |
-| `BILLING_ENFORCE_ONE_PAYMENT`   | Один paid-платёж на период (защита от дублей)                    |
-| `BILLING_GRACE_DAYS`            | Льготные дни до блокировки                                       |
-| `PAYMENT_WIDGET_MODE`           | `qr_sbp` / `payment_button`                                      |
-| `PAYMENT_EMAIL_NOTIFY`          | Письмо пользователю об успешной оплате                           |
-| `PAYMENT_PAGE_ERROR_TEXT`       | Текст ошибки на странице оплаты                                  |
-| `MAIL_NOTIFY_*`                 | Уведомления о долге, просрочке, ошибке оплаты                    |
-| `MAIL_SUBSCRIPTION_EXPIRING_DAYS` | За сколько дней напоминать об окончании периода                |
-| `ERROR_NOTIFY_ENABLED` / `ERROR_NOTIFY_EMAIL` | Письмо админу при критических ошибках            |
-| `GATEWAY_TEST_AMOUNT`           | Сумма тестового платежа в админке шлюза                          |
-| `LOGGING_ACTIVE`                | Файловое логирование                                             |
-| `LOG_LEVEL`                     | `debug` / `info` / `warning` / `error`                           |
-| `LOG_PATH`                      | Путь к лог-файлу (по умолчанию `/upload/logs/zr.paidaccess.log`) |
+| Опция                                         | Назначение                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| `MODULE_ACTIVE`                               | Включить модуль                                                  |
+| `ACCESS_RESTRICTED_GROUPS`                    | Группы, для которых проверяется подписка                         |
+| `ACCESS_BLOCK_TEMPLATE`                       | Файл шаблона блокировки                                          |
+| `SUBSCRIPTION_FUND_AMOUNT`                    | Фондовый взнос (руб.) — отображается в UI и попадает в ledger    |
+| `SUBSCRIPTION_TAX_AMOUNT`                     | Налоги (руб.) — часть счёта клиенту, не в ledger                 |
+| `SUBSCRIPTION_MAINTENANCE_AMOUNT`             | Содержание сайта / ФОТ (руб.) — часть счёта, не в ledger         |
+| `SUBSCRIPTION_AMOUNT`                         | Устаревшее поле; fallback для `SUBSCRIPTION_FUND_AMOUNT`         |
+| `FUND_EXPENSE_ALLOCATION_MODE`                | Распределение списания с фонда: `even` / `random`                |
+| `FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT`       | Число участников N при `random`                                  |
+| `PAYMENT_DESCRIPTION`                         | Назначение платежа в банке; плейсхолдер `{SITE_NAME}`            |
+| `BILLING_PERIOD_MODE`                         | `calendar_month` / `registration` / `anchor_month`               |
+| `BILLING_ANCHOR_SOURCE`                       | Для `anchor_month`: день регистрации или фиксированный день      |
+| `BILLING_FIXED_DAY`                           | Фиксированный день месяца (1–28)                                 |
+| `BILLING_SHORT_MONTH_POLICY`                  | Поведение в коротких месяцах (`last_day` / `previous`)           |
+| `BILLING_ENFORCE_ONE_PAYMENT`                 | Один paid-платёж на период (защита от дублей)                    |
+| `BILLING_GRACE_DAYS`                          | Льготные дни до блокировки                                       |
+| `PAYMENT_WIDGET_MODE`                         | `qr_sbp` / `payment_button`                                      |
+| `PAYMENT_EMAIL_NOTIFY`                        | Письмо пользователю об успешной оплате                           |
+| `PAYMENT_PAGE_ERROR_TEXT`                     | Текст ошибки на странице оплаты                                  |
+| `MAIL_NOTIFY_*`                               | Уведомления о долге, просрочке, ошибке оплаты                    |
+| `MAIL_SUBSCRIPTION_EXPIRING_DAYS`             | За сколько дней напоминать об окончании периода                  |
+| `ERROR_NOTIFY_ENABLED` / `ERROR_NOTIFY_EMAIL` | Письмо админу при критических ошибках                            |
+| `GATEWAY_TEST_AMOUNT`                         | Сумма тестового платежа в админке шлюза                          |
+| `LOGGING_ACTIVE`                              | Файловое логирование                                             |
+| `LOG_LEVEL`                                   | `debug` / `info` / `warning` / `error`                           |
+| `LOG_PATH`                                    | Путь к лог-файлу (по умолчанию `/upload/logs/zr.paidaccess.log`) |
 
 Форма настроек: `options.php` (вкладки: основные, биллинг, почта, логи).
 
@@ -423,6 +462,7 @@ use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Access\AccessControl;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\PublicUi\FundWalletService;
+use Zr\PaidAccess\PublicUi\FundContributorService;
 use Zr\PaidAccess\Fund\FundMovementService;
 
 Loader::includeModule('zr.paidaccess');
@@ -441,6 +481,9 @@ $paymentId = SubscriptionPaymentService::preparePayment($userId, 's1');
 
 // Данные кошелька фонда текущего сайта
 $wallet = FundWalletService::getWalletData();
+
+// Персональный остаток вклада пользователя в фонд
+$contributor = FundContributorService::getContributorData($userId);
 
 // Программное списание с фонда (с проверкой баланса)
 FundMovementService::recordExpense($fundId, 500.0, 'Расход по решению совета', [
@@ -478,7 +521,7 @@ composer test
 # или: php vendor/phpunit/phpunit/phpunit -c phpunit.xml.dist
 ```
 
-Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
+Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
 
 ---
 
@@ -488,8 +531,9 @@ composer test
 2. **Sale / заказы Bitrix не используются** — доменная модель модуля (`PaymentTable`, `SubscriptionTable`).
 3. **Баланс фонда только из ledger** — не добавлять поле «остаток» в `FundTable`.
 4. **Движения фонда** — только через `FundMovementService` (идемпотентность для платежей).
-5. **Опции и мультисайтовость** — суффикс `_{SITE_ID}` в `b_option`, нормализация через `PaidAccessCore::normalizeSiteId()`.
-6. **Legacy сайта** (IBLOCK 13/14, `b_payments`, старые `api/tinkoff`) — только для чтения при миграции, не для нового кода.
+5. **Списания с долей участников** — доли в `fund_expense_allocation`; остаток вклада = ledger − allocations.
+6. **Опции и мультисайтовость** — суффикс `_{SITE_ID}` в `b_option`, нормализация через `PaidAccessCore::normalizeSiteId()`.
+7. **Legacy сайта** (IBLOCK 13/14, `b_payments`, старые `api/tinkoff`) — только для чтения при миграции, не для нового кода.
 
 ---
 
