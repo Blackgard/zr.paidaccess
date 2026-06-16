@@ -11,6 +11,7 @@ use Zr\PaidAccess\Admin\FundAdminService;
 use Zr\PaidAccess\Enum\FundMovementSource;
 use Zr\PaidAccess\Enum\FundMovementType;
 use Zr\PaidAccess\Fund\FundRepository;
+use Zr\PaidAccess\Options\ModuleOptionsProvider;
 use Zr\PaidAccess\PaidAccessCore;
 
 $moduleId = PaidAccessCore::MODULE_ID;
@@ -103,6 +104,25 @@ if ($request->isPost() && check_bitrix_sessid()) {
 $typeTitles = FundAdminService::getMovementTypeTitles();
 $formAction = $APPLICATION->GetCurPage() . '?FUND_ID=' . $fundId . '&lang=' . $languageId;
 
+$fundSiteId = (string)($fund['SITE_ID'] ?? '');
+$allocationMode = PaidAccessCore::getFundExpenseAllocationMode($fundSiteId);
+$allocationModeTitles = ModuleOptionsProvider::getFundExpenseAllocationModeOptions();
+$allocationModeLabel = $allocationModeTitles[$allocationMode] ?? $allocationMode;
+if ($allocationMode === PaidAccessCore::FUND_EXPENSE_ALLOCATION_MODE_RANDOM) {
+    $allocationModeLabel .= ' (N=' . PaidAccessCore::getFundExpenseRandomParticipantCount($fundSiteId) . ')';
+}
+$settingsUrl = '/bitrix/admin/settings.php?mid=' . urlencode($moduleId) . '&lang=' . urlencode($languageId);
+$isExpenseSelected = (string)$formValues['TYPE'] === FundMovementType::EXPENSE;
+
+$aTabs = [
+    [
+        'DIV' => 'main',
+        'TAB' => Loc::getMessage('ZR_PAIDACCESS_TAB_MOVEMENT_FORM'),
+        'TITLE' => Loc::getMessage('ZR_PAIDACCESS_TAB_MOVEMENT_FORM'),
+    ],
+];
+$tabControl = new CAdminTabControl('tabControl', $aTabs);
+
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
 ?>
 
@@ -125,82 +145,162 @@ if ($message) {
 }
 ?>
 
-<form method="post" action="<?= htmlspecialcharsbx($formAction) ?>" name="zr_paidaccess_fund_movement_form">
+<form method="post"
+      action="<?= htmlspecialcharsbx($formAction) ?>"
+      name="zr_paidaccess_fund_movement_form"
+      id="zr_paidaccess_fund_movement_form">
     <?= bitrix_sessid_post() ?>
     <input type="hidden" name="lang" value="<?= htmlspecialcharsbx($languageId) ?>">
     <input type="hidden" name="FUND_ID" value="<?= $fundId ?>">
 
-    <div class="adm-detail-title"><?= Loc::getMessage('ZR_PAIDACCESS_MOVEMENT_ADD_TITLE') ?></div>
+    <?php
+    $tabControl->Begin();
+$tabControl->BeginNextTab();
+?>
 
-    <div class="adm-info-message-wrap" style="margin: 12px 0;">
-        <div class="adm-info-message">
-            <?= Loc::getMessage('ZR_PAIDACCESS_FUND_LABEL') ?>:
-            <strong><?= htmlspecialcharsbx((string)$fund['NAME']) ?></strong>
-            (<?= htmlspecialcharsbx((string)$fund['SITE_ID']) ?> / <?= htmlspecialcharsbx((string)$fund['CODE']) ?>)
-            <br>
-            <?= Loc::getMessage('ZR_PAIDACCESS_COL_BALANCE') ?>:
-            <strong><?= htmlspecialcharsbx(FundAdminService::getFundBalanceFormatted($fundId)) ?></strong>
-        </div>
-    </div>
+    <tr>
+        <td colspan="2">
+            <div class="zr-paidaccess-fund-summary">
+                <div class="zr-paidaccess-fund-summary__main">
+                    <div class="zr-paidaccess-fund-summary__label"><?= Loc::getMessage('ZR_PAIDACCESS_FUND_LABEL') ?></div>
+                    <div class="zr-paidaccess-fund-summary__name"><?= htmlspecialcharsbx((string)$fund['NAME']) ?></div>
+                    <div class="zr-paidaccess-fund-summary__meta">
+                        <?= htmlspecialcharsbx((string)$fund['SITE_ID']) ?>
+                        / <?= htmlspecialcharsbx((string)$fund['CODE']) ?>
+                    </div>
+                </div>
+                <div class="zr-paidaccess-fund-summary__balance">
+                    <span class="zr-paidaccess-fund-summary__balance-label">
+                        <?= Loc::getMessage('ZR_PAIDACCESS_COL_BALANCE') ?>
+                    </span>
+                    <span class="zr-paidaccess-fund-summary__balance-value">
+                        <?= htmlspecialcharsbx(FundAdminService::getFundBalanceFormatted($fundId)) ?>
+                    </span>
+                </div>
+            </div>
 
-    <table class="edit-table" style="width:100%;">
-        <tr>
-            <td width="40%" class="adm-detail-content-cell-l">
-                <?= Loc::getMessage('ZR_PAIDACCESS_COL_MOVEMENT_TYPE') ?>:<span class="required">*</span>
-            </td>
-            <td width="60%" class="adm-detail-content-cell-r">
-                <select name="TYPE" class="adm-select" required>
-                    <?php foreach ($typeTitles as $code => $title): ?>
-                        <option value="<?= htmlspecialcharsbx($code) ?>"
-                            <?= (string)$formValues['TYPE'] === $code ? ' selected' : '' ?>>
-                            <?= htmlspecialcharsbx($title) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </td>
-        </tr>
+            <div class="adm-detail-content-item-block">
+                <table class="edit-table">
+                    <tr>
+                        <td width="40%" class="adm-detail-content-cell-l">
+                            <?= Loc::getMessage('ZR_PAIDACCESS_COL_MOVEMENT_TYPE') ?>:<span class="required">*</span>
+                        </td>
+                        <td width="60%" class="adm-detail-content-cell-r">
+                            <select name="TYPE" id="zr_movement_type" class="select-field" required>
+                                <?php foreach ($typeTitles as $code => $title): ?>
+                                    <option value="<?= htmlspecialcharsbx($code) ?>"
+                                        <?= (string)$formValues['TYPE'] === $code ? ' selected' : '' ?>>
+                                        <?= htmlspecialcharsbx($title) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
 
-        <tr>
-            <td class="adm-detail-content-cell-l">
-                <?= Loc::getMessage('ZR_PAIDACCESS_COL_AMOUNT') ?>:<span class="required">*</span>
-            </td>
-            <td class="adm-detail-content-cell-r">
-                <input type="number" name="AMOUNT" class="adm-input" step="0.01" min="0.01" required
-                       value="<?= htmlspecialcharsbx((string)$formValues['AMOUNT']) ?>">
-            </td>
-        </tr>
+                    <tr>
+                        <td class="adm-detail-content-cell-l">
+                            <?= Loc::getMessage('ZR_PAIDACCESS_COL_AMOUNT') ?>:<span class="required">*</span>
+                        </td>
+                        <td class="adm-detail-content-cell-r">
+                            <input type="number"
+                                   name="AMOUNT"
+                                   class="select-field zr-paidaccess-field-amount"
+                                   step="0.01"
+                                   min="0.01"
+                                   required
+                                   placeholder="0.00"
+                                   value="<?= htmlspecialcharsbx((string)$formValues['AMOUNT']) ?>">
+                        </td>
+                    </tr>
 
-        <tr>
-            <td class="adm-detail-content-cell-l">
-                <?= Loc::getMessage('ZR_PAIDACCESS_COL_DESCRIPTION') ?>:<span class="required">*</span>
-            </td>
-            <td class="adm-detail-content-cell-r">
-                <textarea name="DESCRIPTION" class="adm-input" rows="3" maxlength="512" required><?= htmlspecialcharsbx((string)$formValues['DESCRIPTION']) ?></textarea>
-            </td>
-        </tr>
+                    <tr>
+                        <td class="adm-detail-content-cell-l">
+                            <?= Loc::getMessage('ZR_PAIDACCESS_COL_DESCRIPTION') ?>:<span class="required">*</span>
+                        </td>
+                        <td class="adm-detail-content-cell-r">
+                            <textarea name="DESCRIPTION"
+                                      class="select-field"
+                                      rows="3"
+                                      maxlength="512"
+                                      required
+                                      placeholder="<?= Loc::getMessage('ZR_PAIDACCESS_FIELD_DESCRIPTION_PLACEHOLDER') ?>"><?= htmlspecialcharsbx((string)$formValues['DESCRIPTION']) ?></textarea>
+                        </td>
+                    </tr>
 
-        <tr>
-            <td class="adm-detail-content-cell-l"><?= Loc::getMessage('ZR_PAIDACCESS_FIELD_EXTERNAL_REF') ?>:</td>
-            <td class="adm-detail-content-cell-r">
-                <input type="text" name="EXTERNAL_REF" class="adm-input" maxlength="64"
-                       value="<?= htmlspecialcharsbx((string)$formValues['EXTERNAL_REF']) ?>">
-                <div class="adm-input-description"><?= Loc::getMessage('ZR_PAIDACCESS_FIELD_EXTERNAL_REF_HINT') ?></div>
-            </td>
-        </tr>
-    </table>
+                    <tr>
+                        <td class="adm-detail-content-cell-l"><?= Loc::getMessage('ZR_PAIDACCESS_FIELD_EXTERNAL_REF') ?>:</td>
+                        <td class="adm-detail-content-cell-r">
+                            <input type="text"
+                                   name="EXTERNAL_REF"
+                                   class="select-field"
+                                   maxlength="64"
+                                   value="<?= htmlspecialcharsbx((string)$formValues['EXTERNAL_REF']) ?>">
+                            <div class="adm-input-description">
+                                <?= Loc::getMessage('ZR_PAIDACCESS_FIELD_EXTERNAL_REF_HINT') ?>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
 
-    <div class="adm-info-message-wrap" style="margin: 12px 0;">
-        <div class="adm-info-message">
-            <?= Loc::getMessage('ZR_PAIDACCESS_EXPENSE_ALLOCATION_HINT') ?>
-        </div>
-    </div>
+                <div id="zr-expense-allocation-callout"
+                     class="zr-paidaccess-callout<?= $isExpenseSelected ? '' : ' is-hidden' ?>">
+                    <div class="zr-paidaccess-callout__title">
+                        <?= Loc::getMessage('ZR_PAIDACCESS_EXPENSE_ALLOCATION_TITLE') ?>
+                    </div>
+                    <p class="zr-paidaccess-callout__text">
+                        <?= Loc::getMessage('ZR_PAIDACCESS_EXPENSE_ALLOCATION_HINT') ?>
+                    </p>
+                    <p class="zr-paidaccess-callout__meta">
+                        <?= Loc::getMessage('ZR_PAIDACCESS_EXPENSE_ALLOCATION_MODE') ?>:
+                        <strong><?= htmlspecialcharsbx($allocationModeLabel) ?></strong>
+                        ·
+                        <a href="<?= htmlspecialcharsbx($settingsUrl) ?>" target="_blank">
+                            <?= Loc::getMessage('ZR_PAIDACCESS_LINK_MODULE_SETTINGS') ?>
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </td>
+    </tr>
 
-    <div class="adm-detail-content-btns-wrap" style="margin-top:16px;">
-        <input type="submit" name="save" value="<?= Loc::getMessage('ZR_PAIDACCESS_SAVE_AND_BACK') ?>" class="adm-btn-save">
-        <input type="submit" name="apply" value="<?= Loc::getMessage('ZR_PAIDACCESS_SAVE') ?>" class="adm-btn">
-    </div>
+    <?php
+$tabControl->EndTab();
+$tabControl->Buttons([
+    'back_url' => 'zr_paidaccess_fund_edit.php?ID=' . $fundId . '&lang=' . $languageId . '#tab_movements',
+    'btnSave' => true,
+    'btnApply' => true,
+    'btnCancel' => true,
+    'save' => true,
+    'apply' => true,
+]);
+$tabControl->End();
+?>
 </form>
 </div>
+
+<script>
+(function () {
+    var form = document.getElementById('zr_paidaccess_fund_movement_form');
+    if (!form) {
+        return;
+    }
+
+    var typeSelect = form.elements['TYPE'];
+    var callout = document.getElementById('zr-expense-allocation-callout');
+    if (!typeSelect || !callout) {
+        return;
+    }
+
+    var expenseType = <?= json_encode(FundMovementType::EXPENSE, JSON_UNESCAPED_UNICODE) ?>;
+
+    function syncExpenseCallout() {
+        callout.classList.toggle('is-hidden', typeSelect.value !== expenseType);
+    }
+
+    typeSelect.addEventListener('change', syncExpenseCallout);
+    syncExpenseCallout();
+})();
+</script>
 
 <?php
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_admin.php';
