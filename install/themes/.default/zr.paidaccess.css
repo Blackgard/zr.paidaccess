@@ -132,6 +132,101 @@
 .zr-paidaccess-admin .adm-input-description {
     color: #7c8994;
     font-size: 12px;
+    margin-top: 6px;
+}
+
+.zr-paidaccess-fund-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #f5f9f9 0%, #eef5f7 100%);
+    border: 1px solid #dce7ed;
+    border-radius: 4px;
+}
+
+.zr-paidaccess-fund-summary__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #7c8994;
+    margin-bottom: 4px;
+}
+
+.zr-paidaccess-fund-summary__name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4b6267;
+}
+
+.zr-paidaccess-fund-summary__meta {
+    font-size: 12px;
+    color: #7c8994;
+    margin-top: 4px;
+}
+
+.zr-paidaccess-fund-summary__balance {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.zr-paidaccess-fund-summary__balance-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #7c8994;
+}
+
+.zr-paidaccess-fund-summary__balance-value {
+    display: block;
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2e7d32;
+    white-space: nowrap;
+}
+
+.zr-paidaccess-callout {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-left: 3px solid #ffa000;
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5d4037;
+}
+
+.zr-paidaccess-callout.is-hidden {
+    display: none;
+}
+
+.zr-paidaccess-callout__title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.zr-paidaccess-callout__text,
+.zr-paidaccess-callout__meta {
+    margin: 0;
+}
+
+.zr-paidaccess-callout__meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6d4c41;
+}
+
+.zr-paidaccess-callout a {
+    color: #2067b0;
+}
+
+.zr-paidaccess-admin .zr-paidaccess-field-amount {
+    max-width: 220px;
 }
 
 .zr-paidaccess-audit-context {

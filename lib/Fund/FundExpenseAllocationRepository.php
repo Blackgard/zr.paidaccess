@@ -107,4 +107,66 @@ class FundExpenseAllocationRepository
 
         return (int)FundExpenseAllocationTable::getCount(['=MOVEMENT_ID' => $movementId]);
     }
+
+    /**
+     * Сумма долей пользователя в списаниях с фонда.
+     *
+     * @return array{amount: float, count: int}
+     */
+    public static function sumByUser(int $fundId, int $userId): array
+    {
+        $amount = 0.0;
+        $count = 0;
+
+        if ($fundId <= 0 || $userId <= 0) {
+            return ['amount' => $amount, 'count' => $count];
+        }
+
+        $result = FundExpenseAllocationTable::getList([
+            'filter' => [
+                '=FUND_ID' => $fundId,
+                '=USER_ID' => $userId,
+            ],
+            'select' => ['AMOUNT'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            $amount += (float)($row['AMOUNT'] ?? 0);
+            $count++;
+        }
+
+        return ['amount' => $amount, 'count' => $count];
+    }
+
+    /**
+     * @return array<int, array{amount: float, count: int}>
+     */
+    public static function sumByUserGrouped(int $fundId): array
+    {
+        if ($fundId <= 0) {
+            return [];
+        }
+
+        $grouped = [];
+        $result = FundExpenseAllocationTable::getList([
+            'filter' => ['=FUND_ID' => $fundId],
+            'select' => ['USER_ID', 'AMOUNT'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            $userId = (int)($row['USER_ID'] ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+
+            if (!isset($grouped[$userId])) {
+                $grouped[$userId] = ['amount' => 0.0, 'count' => 0];
+            }
+
+            $grouped[$userId]['amount'] += (float)($row['AMOUNT'] ?? 0);
+            $grouped[$userId]['count']++;
+        }
+
+        return $grouped;
+    }
 }
