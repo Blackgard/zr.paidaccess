@@ -93,6 +93,17 @@ class ModuleOptionsProvider
     }
 
     /**
+     * @return array<string, string>
+     */
+    public static function getFundExpenseAllocationModeOptions(): array
+    {
+        return [
+            PaidAccessCore::FUND_EXPENSE_ALLOCATION_MODE_EVEN => 'Равномерно на всех участников фонда',
+            PaidAccessCore::FUND_EXPENSE_ALLOCATION_MODE_RANDOM => 'Случайно на N участников',
+        ];
+    }
+
+    /**
      * Реестр пользовательских текстов на сайте (вкладка «Тексты на сайте»).
      * Новые сообщения добавляются сюда и в PaidAccessCore::OPTION_* + get*().
      *

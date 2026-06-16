@@ -191,6 +191,15 @@ class FundMovementService
             ['fundId' => $fundId, 'movementId' => $movementId, 'amount' => $amount]
         );
 
+        if ($source === FundMovementSource::ADMIN) {
+            FundExpenseAllocationService::recordForMovement(
+                $movementId,
+                $fundId,
+                $amount,
+                (string)($fund['SITE_ID'] ?? '')
+            );
+        }
+
         return $movementId;
     }
 

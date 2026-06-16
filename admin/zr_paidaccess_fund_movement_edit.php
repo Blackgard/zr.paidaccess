@@ -8,6 +8,7 @@ use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\UI\Extension;
 use Zr\PaidAccess\Admin\FundAdminService;
+use Zr\PaidAccess\Enum\FundMovementSource;
 use Zr\PaidAccess\Enum\FundMovementType;
 use Zr\PaidAccess\Fund\FundRepository;
 use Zr\PaidAccess\PaidAccessCore;
@@ -75,7 +76,14 @@ if ($request->isPost() && check_bitrix_sessid()) {
             $movementId = FundAdminService::createManualMovement($fundId, $postData, (int)$USER->GetID());
 
             if ($save !== null && $save !== '') {
+                if ((string)$postData['TYPE'] === FundMovementType::EXPENSE) {
+                    LocalRedirect('zr_paidaccess_fund_expense_view.php?ID=' . $movementId . '&lang=' . $languageId);
+                }
                 LocalRedirect('zr_paidaccess_fund_edit.php?ID=' . $fundId . '&lang=' . $languageId . '#tab_movements');
+            }
+
+            if ((string)$postData['TYPE'] === FundMovementType::EXPENSE) {
+                LocalRedirect('zr_paidaccess_fund_expense_view.php?ID=' . $movementId . '&lang=' . $languageId);
             }
 
             LocalRedirect(
@@ -180,6 +188,12 @@ if ($message) {
             </td>
         </tr>
     </table>
+
+    <div class="adm-info-message-wrap" style="margin: 12px 0;">
+        <div class="adm-info-message">
+            <?= Loc::getMessage('ZR_PAIDACCESS_EXPENSE_ALLOCATION_HINT') ?>
+        </div>
+    </div>
 
     <div class="adm-detail-content-btns-wrap" style="margin-top:16px;">
         <input type="submit" name="save" value="<?= Loc::getMessage('ZR_PAIDACCESS_SAVE_AND_BACK') ?>" class="adm-btn-save">

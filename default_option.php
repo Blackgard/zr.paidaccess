@@ -28,4 +28,6 @@ $zr_paidaccess_default_option = [
     'LOG_LEVEL_s1' => 'error',
     'LOG_PATH_s1' => '/upload/logs/zr.paidaccess.log',
     'GATEWAY_TEST_AMOUNT_s1' => '1',
+    'FUND_EXPENSE_ALLOCATION_MODE_s1' => 'even',
+    'FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT_s1' => '3',
 ];

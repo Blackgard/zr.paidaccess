@@ -32,6 +32,7 @@ class zr_paidaccess extends CModule
         '/admin/zr_paidaccess_funds.php' => '/bitrix/admin/zr_paidaccess_funds.php',
         '/admin/zr_paidaccess_fund_edit.php' => '/bitrix/admin/zr_paidaccess_fund_edit.php',
         '/admin/zr_paidaccess_fund_movement_edit.php' => '/bitrix/admin/zr_paidaccess_fund_movement_edit.php',
+        '/admin/zr_paidaccess_fund_expense_view.php' => '/bitrix/admin/zr_paidaccess_fund_expense_view.php',
         '/admin/zr_paidaccess_gateways.php' => '/bitrix/admin/zr_paidaccess_gateways.php',
         '/admin/zr_paidaccess_gateway_edit.php' => '/bitrix/admin/zr_paidaccess_gateway_edit.php',
         '/admin/zr_paidaccess_gateway_import.php' => '/bitrix/admin/zr_paidaccess_gateway_import.php',
