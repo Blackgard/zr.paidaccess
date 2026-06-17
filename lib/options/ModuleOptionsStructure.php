@@ -130,6 +130,27 @@ final class ModuleOptionsStructure
                     'VALUES' => ModuleOptionsProvider::getAvailableBlockTemplates(),
                     'DEFAULT' => PaidAccessCore::DEFAULT_BLOCK_TEMPLATE,
                 ],
+                'TITLE_DOCUMENT_CONSENT_BLOCK' => [
+                    'TYPE' => 'title',
+                    'TEXT' => 'Обязательные документы',
+                ],
+                'DOCUMENT_CONSENT_ENABLED' => [
+                    'TITLE' => 'Проверять согласие с обязательными документами',
+                    'TYPE' => 'checkbox',
+                    'DEFAULT' => PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_ENABLED,
+                ],
+                'DOCUMENT_CONSENT_BLOCK_TEMPLATE' => [
+                    'TITLE' => 'Шаблон страницы согласия с документами',
+                    'TYPE' => 'selectbox',
+                    'VALUES' => ModuleOptionsProvider::getAvailableDocumentConsentTemplates(),
+                    'DEFAULT' => PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
+                ],
+                'NOTE_DOCUMENT_CONSENT' => [
+                    'TYPE' => 'note',
+                    'TEXT' => 'Проверка выполняется для тех же групп, что и подписка. '
+                        . 'Список документов — в разделе «Документы» админки модуля. '
+                        . 'При публикации новой версии пользователь должен подтвердить её повторно.',
+                ],
                 'NOTE_ACCESS_TEMPLATES' => [
                     'TYPE' => 'note',
                     'TEXT' => 'Шаблоны: /local/php_interface/zr.paidaccess/template_*.php. '

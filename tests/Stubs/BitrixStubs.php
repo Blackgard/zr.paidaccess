@@ -87,7 +87,7 @@ class GroupTable
      */
     public static function getList(array $params = [])
     {
-        return new class {
+        return new class () {
             public function fetch()
             {
                 return false;

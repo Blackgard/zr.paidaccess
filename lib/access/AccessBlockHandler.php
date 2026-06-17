@@ -41,6 +41,12 @@ class AccessBlockHandler
         $userId = (int)$USER->GetID();
         BillingDebtService::syncUserDebtStatus($userId);
 
+        if (DocumentConsentControl::mustShowConsentPage($userId)) {
+            self::renderDocumentConsentPage();
+
+            return;
+        }
+
         if (!AccessControl::mustShowBlockPage($userId)) {
             return;
         }
@@ -74,6 +80,30 @@ class AccessBlockHandler
     protected static function renderBlockPage(): void
     {
         $templatePath = AccessTemplate::getTemplatePath();
+
+        if (!is_file($templatePath)) {
+            return;
+        }
+
+        $APPLICATION = $GLOBALS['APPLICATION'] ?? null;
+
+        if (is_object($APPLICATION)) {
+            $APPLICATION->RestartBuffer();
+        }
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        /** @noinspection PhpIncludeInspection */
+        include $templatePath;
+
+        die();
+    }
+
+    protected static function renderDocumentConsentPage(): void
+    {
+        $templatePath = DocumentConsentTemplate::getTemplatePath();
 
         if (!is_file($templatePath)) {
             return;

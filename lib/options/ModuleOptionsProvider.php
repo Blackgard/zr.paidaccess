@@ -11,6 +11,7 @@ namespace Zr\PaidAccess\Options;
 use Bitrix\Main\GroupTable;
 use Zr\PaidAccess\Access\AccessControl;
 use Zr\PaidAccess\Access\AccessTemplate;
+use Zr\PaidAccess\Access\DocumentConsentTemplate;
 use Zr\PaidAccess\PaidAccessCore;
 
 /**
@@ -44,6 +45,14 @@ class ModuleOptionsProvider
     public static function getAvailableBlockTemplates(): array
     {
         return AccessTemplate::getAvailableTemplates();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getAvailableDocumentConsentTemplates(): array
+    {
+        return DocumentConsentTemplate::getAvailableTemplates();
     }
 
     /**
@@ -128,6 +137,14 @@ class ModuleOptionsProvider
                 'ROWS' => 6,
                 'COLS' => 120,
                 'NOTE' => 'Показывается при сбое создания платежа или получения QR. Технические детали пишутся только в журнал модуля.',
+            ],
+            PaidAccessCore::OPTION_BLOCK_PAGE_FOOTER_TEXT => [
+                'TITLE' => 'Подвал страниц блокировки (контакты)',
+                'TYPE' => 'textarea',
+                'DEFAULT' => PaidAccessCore::DEFAULT_BLOCK_PAGE_FOOTER_TEXT,
+                'ROWS' => 4,
+                'COLS' => 120,
+                'NOTE' => 'Показывается внизу страницы согласия с документами и страницы оплаты подписки. Пустое значение — подвал скрыт.',
             ],
         ];
     }

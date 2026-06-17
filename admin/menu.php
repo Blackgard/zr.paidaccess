@@ -41,6 +41,15 @@ return [
                 ],
             ],
             [
+                'text' => GetMessage('ZR_PAIDACCESS_MENU_DOCUMENTS'),
+                'title' => GetMessage('ZR_PAIDACCESS_MENU_DOCUMENTS'),
+                'url' => 'zr_paidaccess_documents.php?lang=' . LANGUAGE_ID,
+                'more_url' => [
+                    'zr_paidaccess_document_edit.php',
+                    'zr_paidaccess_document_version_edit.php',
+                ],
+            ],
+            [
                 'text' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'title' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'url' => 'zr_paidaccess_gateways.php?lang=' . LANGUAGE_ID,

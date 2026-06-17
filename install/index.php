@@ -8,6 +8,7 @@ use Bitrix\Main\ModuleManager;
 use Zr\PaidAccess\Access\AccessBlockHandler;
 use Zr\PaidAccess\Access\RegistrationPaymentHandler;
 use Zr\PaidAccess\Install\AgentInstaller;
+use Zr\PaidAccess\Install\DocumentInstaller;
 use Zr\PaidAccess\Install\FundInstaller;
 use Zr\PaidAccess\Install\GatewayInstaller;
 use Zr\PaidAccess\Install\GatewayTransactionInstaller;
@@ -33,6 +34,9 @@ class zr_paidaccess extends CModule
         '/admin/zr_paidaccess_fund_edit.php' => '/bitrix/admin/zr_paidaccess_fund_edit.php',
         '/admin/zr_paidaccess_fund_movement_edit.php' => '/bitrix/admin/zr_paidaccess_fund_movement_edit.php',
         '/admin/zr_paidaccess_fund_expense_view.php' => '/bitrix/admin/zr_paidaccess_fund_expense_view.php',
+        '/admin/zr_paidaccess_documents.php' => '/bitrix/admin/zr_paidaccess_documents.php',
+        '/admin/zr_paidaccess_document_edit.php' => '/bitrix/admin/zr_paidaccess_document_edit.php',
+        '/admin/zr_paidaccess_document_version_edit.php' => '/bitrix/admin/zr_paidaccess_document_version_edit.php',
         '/admin/zr_paidaccess_gateways.php' => '/bitrix/admin/zr_paidaccess_gateways.php',
         '/admin/zr_paidaccess_gateway_edit.php' => '/bitrix/admin/zr_paidaccess_gateway_edit.php',
         '/admin/zr_paidaccess_gateway_import.php' => '/bitrix/admin/zr_paidaccess_gateway_import.php',
@@ -41,6 +45,7 @@ class zr_paidaccess extends CModule
         '/components/zr/personal.subscription' => '/local/components/zr/personal.subscription',
         '/components/zr/member.payment.list' => '/local/components/zr/member.payment.list',
         '/components/zr/fund.wallet' => '/local/components/zr/fund.wallet',
+        '/components/zr/document.consent' => '/local/components/zr/document.consent',
     ];
 
     public function __construct()
@@ -81,6 +86,7 @@ class zr_paidaccess extends CModule
         PaymentInstaller::ensureSchema();
         GatewayTransactionInstaller::ensureSchema();
         FundInstaller::ensureSchema();
+        DocumentInstaller::ensureSchema();
         LogInstaller::ensureTables();
         AgentInstaller::ensureAgents();
         $this->InstallEvents();
@@ -183,6 +189,13 @@ class zr_paidaccess extends CModule
         if (is_file($sourceFile) && !is_file($targetFile)) {
             copy($sourceFile, $targetFile);
         }
+
+        $consentSource = __DIR__ . '/templates/' . PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE;
+        $consentTarget = $targetDir . '/' . PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE;
+
+        if (is_file($consentSource) && !is_file($consentTarget)) {
+            copy($consentSource, $consentTarget);
+        }
     }
 
     protected function installDefaultOptions(): void
@@ -193,6 +206,16 @@ class zr_paidaccess extends CModule
             $lid = $arSite['LID'];
 
             Option::set($this->MODULE_ID, PaidAccessCore::OPTION_ACCESS_BLOCK_TEMPLATE . '_' . $lid, PaidAccessCore::DEFAULT_BLOCK_TEMPLATE);
+            Option::set(
+                $this->MODULE_ID,
+                PaidAccessCore::OPTION_DOCUMENT_CONSENT_ENABLED . '_' . $lid,
+                PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_ENABLED
+            );
+            Option::set(
+                $this->MODULE_ID,
+                PaidAccessCore::OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE . '_' . $lid,
+                PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE
+            );
             Option::set(
                 $this->MODULE_ID,
                 PaidAccessCore::OPTION_ACCESS_RESTRICTED_GROUPS . '_' . $lid,

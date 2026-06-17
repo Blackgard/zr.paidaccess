@@ -20,6 +20,9 @@ class PaidAccessCore
     public const OPTION_MODULE_ACTIVE = 'MODULE_ACTIVE';
     public const OPTION_ACCESS_RESTRICTED_GROUPS = 'ACCESS_RESTRICTED_GROUPS';
     public const OPTION_ACCESS_BLOCK_TEMPLATE = 'ACCESS_BLOCK_TEMPLATE';
+    /** Проверка согласия с обязательными документами */
+    public const OPTION_DOCUMENT_CONSENT_ENABLED = 'DOCUMENT_CONSENT_ENABLED';
+    public const OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'DOCUMENT_CONSENT_BLOCK_TEMPLATE';
     public const OPTION_SUBSCRIPTION_AMOUNT = 'SUBSCRIPTION_AMOUNT';
     /** Фондовый взнос (отображается в UI и попадает в ledger) */
     public const OPTION_SUBSCRIPTION_FUND_AMOUNT = 'SUBSCRIPTION_FUND_AMOUNT';
@@ -43,6 +46,8 @@ class PaidAccessCore
     public const OPTION_PAYMENT_EMAIL_NOTIFY = 'PAYMENT_EMAIL_NOTIFY';
     /** Текст ошибки на странице оплаты (для пользователя) */
     public const OPTION_PAYMENT_PAGE_ERROR_TEXT = 'PAYMENT_PAGE_ERROR_TEXT';
+    /** Подвал страниц блокировки: согласие с документами и оплата */
+    public const OPTION_BLOCK_PAGE_FOOTER_TEXT = 'BLOCK_PAGE_FOOTER_TEXT';
     /** Способ оплаты на сайте: qr_sbp | payment_button */
     public const OPTION_PAYMENT_WIDGET_MODE = 'PAYMENT_WIDGET_MODE';
     /**
@@ -100,6 +105,7 @@ class PaidAccessCore
     public const DEFAULT_BILLING_GRACE_DAYS = '0';
     public const DEFAULT_PAYMENT_EMAIL_NOTIFY = 'Y';
     public const DEFAULT_PAYMENT_PAGE_ERROR_TEXT = 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.';
+    public const DEFAULT_BLOCK_PAGE_FOOTER_TEXT = 'Если что-то пошло не так, напишите администратору: admin@example.com';
     public const PAYMENT_WIDGET_MODE_QR_SBP = 'qr_sbp';
     public const PAYMENT_WIDGET_MODE_PAYMENT_BUTTON = 'payment_button';
     public const DEFAULT_PAYMENT_WIDGET_MODE = self::PAYMENT_WIDGET_MODE_QR_SBP;
@@ -125,6 +131,8 @@ class PaidAccessCore
     public const DEFAULT_FUND_EXPENSE_RANDOM_PARTICIPANT_COUNT = '3';
     public const TEMPLATES_RELATIVE_PATH = '/local/php_interface/zr.paidaccess';
     public const DEFAULT_BLOCK_TEMPLATE = 'template_need_paid.php';
+    public const DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'template_document_consent.php';
+    public const DEFAULT_DOCUMENT_CONSENT_ENABLED = 'Y';
 
     /** Группы по умолчанию для проверки подписки (ID через запятую) */
     public const DEFAULT_ACCESS_RESTRICTED_GROUPS = '2';
@@ -170,6 +178,24 @@ class PaidAccessCore
         return self::getOptionByCode(
             self::OPTION_ACCESS_BLOCK_TEMPLATE,
             self::DEFAULT_BLOCK_TEMPLATE,
+            $siteId
+        );
+    }
+
+    public static function isDocumentConsentEnabled(?string $siteId = null): bool
+    {
+        return self::getOptionByCode(
+            self::OPTION_DOCUMENT_CONSENT_ENABLED,
+            self::DEFAULT_DOCUMENT_CONSENT_ENABLED,
+            $siteId
+        ) === 'Y';
+    }
+
+    public static function getDocumentConsentBlockTemplate(?string $siteId = null): string
+    {
+        return self::getOptionByCode(
+            self::OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
+            self::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
             $siteId
         );
     }
@@ -346,6 +372,15 @@ class PaidAccessCore
         ));
 
         return $text !== '' ? $text : self::DEFAULT_PAYMENT_PAGE_ERROR_TEXT;
+    }
+
+    public static function getBlockPageFooterText(?string $siteId = null): string
+    {
+        return trim(self::getOptionByCode(
+            self::OPTION_BLOCK_PAGE_FOOTER_TEXT,
+            self::DEFAULT_BLOCK_PAGE_FOOTER_TEXT,
+            $siteId
+        ));
     }
 
     public static function getSiteDisplayName(?string $siteId = null): string
