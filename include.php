@@ -87,6 +87,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\PublicUi\FundWalletService' => 'lib/Public/FundWalletService.php',
     'Zr\PaidAccess\PublicUi\FundContributorService' => 'lib/Public/FundContributorService.php',
     'Zr\PaidAccess\PublicUi\DocumentConsentViewService' => 'lib/Public/DocumentConsentViewService.php',
+    'Zr\PaidAccess\PublicUi\DocumentListViewService' => 'lib/Public/DocumentListViewService.php',
     'Zr\PaidAccess\Gateway\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',
     'Zr\PaidAccess\Enum\PaymentStatus' => 'lib/enum/PaymentStatus.php',
     'Zr\PaidAccess\Enum\SubscriptionStatus' => 'lib/enum/SubscriptionStatus.php',
@@ -124,6 +125,7 @@ $moduleId = 'zr.paidaccess';
     'Zr\PaidAccess\Document\DocumentAcceptanceRepository' => 'lib/Document/DocumentAcceptanceRepository.php',
     'Zr\PaidAccess\Document\DocumentConsentService' => 'lib/Document/DocumentConsentService.php',
     'Zr\PaidAccess\Document\DocumentVersionService' => 'lib/Document/DocumentVersionService.php',
+    'Zr\PaidAccess\Document\RequiredDocumentService' => 'lib/Document/RequiredDocumentService.php',
     'Zr\PaidAccess\Document\DocumentConsentPageRenderer' => 'lib/Document/DocumentConsentPageRenderer.php',
 ]);
 

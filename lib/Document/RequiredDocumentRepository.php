@@ -103,18 +103,23 @@ class RequiredDocumentRepository
     }
 
     /**
-     * Активные обязательные документы сайта с опубликованной текущей версией.
+     * Активные документы сайта с опубликованной текущей версией.
      *
      * @return array<int, array<string, mixed>>
      */
-    public static function getRequiredWithCurrentVersion(?string $siteId = null): array
+    public static function getActiveWithCurrentVersion(?string $siteId = null, bool $onlyRequired = false): array
     {
         $siteId = PaidAccessCore::normalizeSiteId($siteId);
-        $documents = self::getList([
+        $filter = [
             '=SITE_ID' => $siteId,
             '=ACTIVE' => 'Y',
-            '=IS_REQUIRED' => 'Y',
-        ]);
+        ];
+
+        if ($onlyRequired) {
+            $filter['=IS_REQUIRED'] = 'Y';
+        }
+
+        $documents = self::getList($filter);
 
         $result = [];
         foreach ($documents as $document) {
@@ -129,5 +134,15 @@ class RequiredDocumentRepository
         }
 
         return $result;
+    }
+
+    /**
+     * Активные обязательные документы сайта с опубликованной текущей версией.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getRequiredWithCurrentVersion(?string $siteId = null): array
+    {
+        return self::getActiveWithCurrentVersion($siteId, true);
     }
 }
