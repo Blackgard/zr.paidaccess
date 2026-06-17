@@ -56,6 +56,7 @@ final class ModuleClassLoader
         'Zr\PaidAccess\Access\DocumentConsentTemplate' => 'lib/access/DocumentConsentTemplate.php',
         'Zr\PaidAccess\Document\DocumentConsentService' => 'lib/Document/DocumentConsentService.php',
         'Zr\PaidAccess\Document\DocumentVersionService' => 'lib/Document/DocumentVersionService.php',
+        'Zr\PaidAccess\Document\RequiredDocumentService' => 'lib/Document/RequiredDocumentService.php',
         'Zr\PaidAccess\Document\RequiredDocumentVersionRepository' => 'lib/Document/RequiredDocumentVersionRepository.php',
         'Zr\PaidAccess\Options\ModuleOptionsProvider' => 'lib/options/ModuleOptionsProvider.php',
         'Zr\PaidAccess\Options\ModuleOptionsStructure' => 'lib/options/ModuleOptionsStructure.php',

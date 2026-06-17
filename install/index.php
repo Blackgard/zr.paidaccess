@@ -46,6 +46,7 @@ class zr_paidaccess extends CModule
         '/components/zr/member.payment.list' => '/local/components/zr/member.payment.list',
         '/components/zr/fund.wallet' => '/local/components/zr/fund.wallet',
         '/components/zr/document.consent' => '/local/components/zr/document.consent',
+        '/components/zr/document.list' => '/local/components/zr/document.list',
     ];
 
     public function __construct()

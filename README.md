@@ -42,7 +42,7 @@
 - для каждого активного сайта создаётся фонд по умолчанию (`CODE=default`);
 - при первом появлении ledger выполняется **backfill** поступлений по уже оплаченным платежам (опция `FUND_MOVEMENTS_BACKFILLED`);
 - копируются файлы админки в `/bitrix/admin/` (в т.ч. раздел «Документы»);
-- копируются компоненты в `/local/components/zr/` (`document.consent` и др.);
+- копируются компоненты в `/local/components/zr/` (`document.consent`, `document.list` и др.);
 - копируется шаблон блокировки оплаты в `/local/php_interface/zr.paidaccess/template_need_paid.php`;
 - копируется шаблон согласия с документами в `/local/php_interface/zr.paidaccess/template_document_consent.php`;
 - регистрируются обработчики событий и агенты;
@@ -59,8 +59,8 @@ local/modules/zr.paidaccess/
 ├── install/
 │   ├── index.php               # CModule: БД, события, копирование файлов
 │   ├── version.php
-│   ├── components/zr/          # personal.subscription, member.payment.list, fund.wallet, document.consent
-│   └── templates/              # template_need_paid.php, template_document_consent.php
+│   ├── components/zr/          # personal.subscription, member.payment.list, fund.wallet, document.consent, document.list
+│   └── templates/              # template_need_paid.php, template_document_consent.php (самодостаточные PHP+HTML)
 ├── admin/                      # Копируется в /bitrix/admin/
 │   ├── menu.php
 │   ├── zr_paidaccess_subscribers.php
@@ -81,7 +81,7 @@ local/modules/zr.paidaccess/
 │   └── PaidAccessCore.php      # Константы и чтение опций (_s1, _ru, …)
 ├── lib/
 │   ├── access/                 # Блокировка доступа, согласие с документами, шаблоны
-│   ├── Document/               # Версии документов, согласие, рендер страницы
+│   ├── Document/               # Версии документов, согласие, публичный каталог (RequiredDocumentService)
 │   ├── subscription/           # Подписка, биллинг, агенты
 │   ├── payment/                # Платежи, webhook, страница оплаты
 │   ├── Fund/                   # Фонд, ledger, баланс
@@ -111,21 +111,21 @@ local/modules/zr.paidaccess/
 
 ## База данных (ORM)
 
-| Таблица                                 | Класс                        | Назначение                                 |
-| --------------------------------------- | ---------------------------- | ------------------------------------------ |
-| `zr_paidaccess_payment`                 | `PaymentTable`               | Платёж / взнос пользователя                |
-| `zr_paidaccess_subscription`            | `SubscriptionTable`          | Состояние подписки пользователя            |
-| `zr_paidaccess_gateway`                 | `GatewayTable`               | Платёжные шлюзы (провайдер + JSON-опции)   |
-| `zr_paidaccess_gateway_transaction`     | `GatewayTransactionTable`    | Лог Init / GetQr / webhook по платежу      |
-| `zr_paidaccess_event_log`               | `EventLogTable`              | Журнал ошибок и событий модуля             |
-| `zr_paidaccess_audit_log`               | `AuditLogTable`              | Аудит действий в админке                   |
-| `zr_paidaccess_notification_log`        | `NotificationLogTable`       | Лог отправленных уведомлений               |
-| `zr_paidaccess_fund`                    | `FundTable`                  | Фонд (по умолчанию один на `SITE_ID`)      |
-| `zr_paidaccess_fund_movement`           | `FundMovementTable`          | Движения средств (ledger)                  |
-| `zr_paidaccess_fund_expense_allocation` | `FundExpenseAllocationTable` | Доли участников в списании с фонда (админ) |
-| `zr_paidaccess_required_document`       | `RequiredDocumentTable`      | Справочник обязательных документов         |
+| Таблица                                   | Класс                          | Назначение                                    |
+| ----------------------------------------- | ------------------------------ | --------------------------------------------- |
+| `zr_paidaccess_payment`                   | `PaymentTable`                 | Платёж / взнос пользователя                   |
+| `zr_paidaccess_subscription`              | `SubscriptionTable`            | Состояние подписки пользователя               |
+| `zr_paidaccess_gateway`                   | `GatewayTable`                 | Платёжные шлюзы (провайдер + JSON-опции)      |
+| `zr_paidaccess_gateway_transaction`       | `GatewayTransactionTable`      | Лог Init / GetQr / webhook по платежу         |
+| `zr_paidaccess_event_log`                 | `EventLogTable`                | Журнал ошибок и событий модуля                |
+| `zr_paidaccess_audit_log`                 | `AuditLogTable`                | Аудит действий в админке                      |
+| `zr_paidaccess_notification_log`          | `NotificationLogTable`         | Лог отправленных уведомлений                  |
+| `zr_paidaccess_fund`                      | `FundTable`                    | Фонд (по умолчанию один на `SITE_ID`)         |
+| `zr_paidaccess_fund_movement`             | `FundMovementTable`            | Движения средств (ledger)                     |
+| `zr_paidaccess_fund_expense_allocation`   | `FundExpenseAllocationTable`   | Доли участников в списании с фонда (админ)    |
+| `zr_paidaccess_required_document`         | `RequiredDocumentTable`        | Справочник обязательных документов            |
 | `zr_paidaccess_required_document_version` | `RequiredDocumentVersionTable` | Версии документов (файл, текст, `IS_CURRENT`) |
-| `zr_paidaccess_document_acceptance`   | `DocumentAcceptanceTable`    | История согласий пользователя с версией      |
+| `zr_paidaccess_document_acceptance`       | `DocumentAcceptanceTable`      | История согласий пользователя с версией       |
 
 Ключевые поля платежа (`zr_paidaccess_payment`):
 
@@ -245,17 +245,21 @@ $APPLICATION->IncludeComponent('zr:fund.wallet', '', [], false);
 
 ```
 OnBeforeProlog → DocumentConsentControl (есть неподписанные версии?)
-    → DocumentConsentPageRenderer (full-page)
+    → include template_document_consent.php (full-page)
     → после accept → AccessControl (подписка)
+    → include template_need_paid.php (full-page)
 ```
 
 ### Версионирование
 
 - Каждый документ (`zr_paidaccess_required_document`) имеет версии в `zr_paidaccess_required_document_version`.
+- Поле `VERSION` — строка до 32 символов (`1`, `1.01`, `v1.02` в админке нормализуется в `1.02`, отображается как `v1.02`).
 - Актуальная версия: `IS_CURRENT=Y`. Публикация новой версии снимает флаг со старой.
 - Согласие фиксируется в `zr_paidaccess_document_acceptance`: пользователь, документ, `VERSION_ID`, дата/время.
 - История не удаляется — при новой версии пользователь снова видит страницу согласия.
 - При публикации версии нужен **файл** (PDF, DOC, DOCX, TXT) **или** HTML-текст на странице согласия — хотя бы одно из двух.
+
+Валидация и подсказка следующего номера: `DocumentVersionService` (`normalizeVersionLabel`, `validateVersionLabel`, `formatVersionLabel`, `getSuggestedVersion`).
 
 ### Админка: порядок работы
 
@@ -268,26 +272,106 @@ OnBeforeProlog → DocumentConsentControl (есть неподписанные �
 
 ### Сервисы
 
-| Класс | Назначение |
-| ----- | ---------- |
-| `DocumentConsentService` | Список ожидающих документов, batch-принятие |
-| `DocumentVersionService` | Публикация версии, URL файла |
-| `DocumentConsentControl` | Нужна ли страница блокировки |
-| `DocumentConsentPageRenderer` | Full-page UI согласия |
-| `DocumentAdminService` | CRUD документов и публикация версий в админке |
+| Класс                         | Назначение                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| `DocumentConsentService`      | Список ожидающих документов, batch-принятие                                     |
+| `RequiredDocumentService`     | Публичный каталог: список опубликованных документов, получение по `CODE` / `ID` |
+| `DocumentVersionService`      | Публикация версии, URL файла, формат номера версии                              |
+| `DocumentConsentControl`      | Нужна ли страница блокировки согласия                                           |
+| `DocumentConsentPageRenderer` | Legacy full-page UI (view в модуле; шаблон сайта — самодостаточный)             |
+| `DocumentListViewService`     | View-model для компонента `zr:document.list`                                    |
+| `DocumentConsentViewService`  | View-model для компонента `zr:document.consent`                                 |
+| `DocumentAdminService`        | CRUD документов и публикация версий в админке                                   |
 
-### Опции и шаблон
+### Публичный каталог документов (`RequiredDocumentService`)
 
-| Опция | Назначение |
-| ----- | ---------- |
-| `DOCUMENT_CONSENT_ENABLED` | Включить проверку согласия (`Y` / `N`) |
-| `DOCUMENT_CONSENT_BLOCK_TEMPLATE` | Имя PHP-шаблона в `/local/php_interface/zr.paidaccess/` |
+Для страниц «Документы», футера, произвольных вставок — без привязки к согласию пользователя.
 
-Шаблон по умолчанию: `/local/php_interface/zr.paidaccess/template_document_consent.php` (копируется из `install/templates/` при установке). Подключает `DocumentConsentPageRenderer::render()`.
+```php
+use Zr\PaidAccess\Document\RequiredDocumentService;
 
-Компонент **`zr:document.consent`** — встраиваемая форма согласия (основной сценарий — full-page шаблон выше).
+// Все активные документы с текущей опубликованной версией
+$items = RequiredDocumentService::getPublishedList();
 
-Пример компонента:
+// Только обязательные для согласия
+$items = RequiredDocumentService::getPublishedList(null, true);
+
+// Один документ по символьному коду
+$doc = RequiredDocumentService::getByCode('user-agreement');
+if ($doc !== null) {
+    echo $doc['TITLE'];      // название
+    echo $doc['URL'];        // ссылка на файл или DETAIL_URL
+    echo $doc['FILE_URL'];   // путь к файлу или null
+    echo $doc['BODY_HTML'];  // HTML-текст версии
+    echo $doc['VERSION_LABEL']; // v1.01
+}
+
+// По ID
+$doc = RequiredDocumentService::getById(5);
+
+// С шаблоном страницы для HTML-документов без файла
+$doc = RequiredDocumentService::getByCode('policy', null, '/documents/#CODE#/');
+```
+
+Поля элемента: `ID`, `CODE`, `TITLE`, `SORT`, `IS_REQUIRED`, `VERSION_ID`, `VERSION`, `VERSION_LABEL`, `FILE_URL`, `FILE_EXT`, `FILE_NAME`, `BODY_HTML`, `DATE_PUBLISH`, `HAS_FILE`, `HAS_BODY`, `URL`, `OPEN_IN_NEW_TAB`.
+
+Правила `URL`:
+
+1. есть файл → `FILE_URL` (открывается в новой вкладке);
+2. нет файла, задан `DETAIL_URL` → подстановка `#CODE#`, `#ID#`, `#VERSION_ID#`;
+3. только HTML без шаблона → якорь `#zr-doc-{code}`.
+
+### Опции и шаблоны блокировки
+
+| Опция                             | Назначение                                                       |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `DOCUMENT_CONSENT_ENABLED`        | Включить проверку согласия (`Y` / `N`)                           |
+| `DOCUMENT_CONSENT_BLOCK_TEMPLATE` | Имя PHP-шаблона согласия в `/local/php_interface/zr.paidaccess/` |
+| `ACCESS_BLOCK_TEMPLATE`           | Имя PHP-шаблона оплаты в `/local/php_interface/zr.paidaccess/`   |
+| `BLOCK_PAGE_FOOTER_TEXT`          | Текст подвала на страницах согласия и оплаты (многострочный)     |
+
+Шаблоны по умолчанию (копируются из `install/templates/` при установке, **далее редактируются только на сайте**):
+
+| Файл                            | Назначение                                     |
+| ------------------------------- | ---------------------------------------------- |
+| `template_document_consent.php` | Full-page согласие: логика + HTML + CSS inline |
+| `template_need_paid.php`        | Full-page оплата: логика + HTML + CSS inline   |
+
+Оба шаблона вызывают сервисы модуля напрямую (`DocumentConsentService`, `SubscriptionPaymentService` и др.), а не рендереры из `lib/`. Классы `DocumentConsentPageRenderer` и `PayBlockPageRenderer` остаются в модуле для обратной совместимости.
+
+Компонент **`zr:document.consent`** — встраиваемая форма согласия для авторизованного пользователя (ожидающие версии). Основной сценарий блокировки — full-page шаблон выше.
+
+Компонент **`zr:document.list`** — таблица опубликованных документов для публичных страниц (устав, политика, соглашение и т.д.).
+
+Пример списка документов:
+
+```php
+<?php
+$APPLICATION->IncludeComponent(
+    'zr:document.list',
+    '',
+    [
+        'ONLY_REQUIRED' => 'N',
+        'DETAIL_URL' => '/documents/#CODE#/',
+        'HEADER_TITLE' => 'Наименование документа',
+        'SHOW_HEADER' => 'Y',
+    ],
+    false
+);
+```
+
+Параметры `zr:document.list`:
+
+| Параметр        | Описание                                                       |
+| --------------- | -------------------------------------------------------------- |
+| `SITE_ID`       | ID сайта (пусто — текущий)                                     |
+| `ONLY_REQUIRED` | `Y` — только обязательные для согласия                         |
+| `CODE`          | Вывести один документ по коду (пусто — весь список)            |
+| `DETAIL_URL`    | URL страницы HTML-документа (`#CODE#`, `#ID#`, `#VERSION_ID#`) |
+| `SHOW_HEADER`   | Показывать заголовок таблицы                                   |
+| `HEADER_TITLE`  | Текст заголовка (по умолчанию «Наименование документа»)        |
+
+Пример компонента согласия:
 
 ```php
 <?php
@@ -303,11 +387,11 @@ $APPLICATION->IncludeComponent(
 
 ## События Bitrix
 
-| Событие                    | Класс                        | Метод                 | Действие                                     |
-| -------------------------- | ---------------------------- | --------------------- | -------------------------------------------- |
+| Событие                    | Класс                        | Метод                 | Действие                                        |
+| -------------------------- | ---------------------------- | --------------------- | ----------------------------------------------- |
 | `main:OnBeforeProlog`      | `AccessBlockHandler`         | `onBeforeProlog`      | Согласие с документами, затем блокировка оплаты |
-| `main:OnAfterUserRegister` | `RegistrationPaymentHandler` | `onAfterUserRegister` | Подготовка первого платежа после регистрации |
-| `main:OnAfterUserLogin`    | `RegistrationPaymentHandler` | `onAfterUserLogin`    | Синхронизация долга после входа              |
+| `main:OnAfterUserRegister` | `RegistrationPaymentHandler` | `onAfterUserRegister` | Подготовка первого платежа после регистрации    |
+| `main:OnAfterUserLogin`    | `RegistrationPaymentHandler` | `onAfterUserLogin`    | Синхронизация долга после входа                 |
 
 Страницы, которые **не блокируются**: админка, webhook, авторизация, статика и др. (см. `AccessBlockHandler::shouldSkipRequest()`).
 
@@ -328,23 +412,23 @@ $APPLICATION->IncludeComponent(
 
 Меню: **Сервисы → Платёжный доступ**.
 
-| Страница               | URL                                                  | Описание                                                                        |
-| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Подписчики             | `/bitrix/admin/zr_paidaccess_subscribers.php`        | Статусы подписок, оплата за текущий период                                      |
-| Платежи                | `/bitrix/admin/zr_paidaccess_payments.php`           | Список и фильтры                                                                |
-| Редактирование платежа | `/bitrix/admin/zr_paidaccess_payment_edit.php`       | Ручные платежи, смена статуса, связь с фондом при paid/refund                   |
-| Фонды                  | `/bitrix/admin/zr_paidaccess_funds.php`              | Список фондов, баланс по ledger                                                 |
-| Редактирование фонда   | `/bitrix/admin/zr_paidaccess_fund_edit.php`          | Название, активность; вкладка «Движения»                                        |
-| Ручное движение        | `/bitrix/admin/zr_paidaccess_fund_movement_edit.php` | Поступление или списание (источник `admin`); при списании — распределение долей |
-| Доли списания          | `/bitrix/admin/zr_paidaccess_fund_expense_view.php`  | Участники и суммы долей по ручному списанию                                     |
-| Документы              | `/bitrix/admin/zr_paidaccess_documents.php`          | Обязательные документы и текущие версии                                         |
-| Редактирование документа | `/bitrix/admin/zr_paidaccess_document_edit.php`    | Карточка документа, вкладка «Версии»                                            |
-| Новая версия документа | `/bitrix/admin/zr_paidaccess_document_version_edit.php` | Публикация версии (файл + текст)                                          |
-| Шлюзы                  | `/bitrix/admin/zr_paidaccess_gateways.php`           | Список эквайрингов, экспорт/удаление                                            |
-| Редактирование шлюза   | `/bitrix/admin/zr_paidaccess_gateway_edit.php`       | Ключи T-Bank, тестовый платёж, Notification URL                                 |
-| Импорт шлюзов          | `/bitrix/admin/zr_paidaccess_gateway_import.php`     | Импорт JSON настроек                                                            |
-| Журнал                 | `/bitrix/admin/zr_paidaccess_logs.php`               | Вкладки: события, аудит, запросы шлюза; **очистка** журналов и файлового лога   |
-| Настройки              | `/bitrix/admin/settings.php?mid=zr.paidaccess`       | Сумма взноса, биллинг, логи, почта                                              |
+| Страница                 | URL                                                     | Описание                                                                        |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Подписчики               | `/bitrix/admin/zr_paidaccess_subscribers.php`           | Статусы подписок, оплата за текущий период                                      |
+| Платежи                  | `/bitrix/admin/zr_paidaccess_payments.php`              | Список и фильтры                                                                |
+| Редактирование платежа   | `/bitrix/admin/zr_paidaccess_payment_edit.php`          | Ручные платежи, смена статуса, связь с фондом при paid/refund                   |
+| Фонды                    | `/bitrix/admin/zr_paidaccess_funds.php`                 | Список фондов, баланс по ledger                                                 |
+| Редактирование фонда     | `/bitrix/admin/zr_paidaccess_fund_edit.php`             | Название, активность; вкладка «Движения»                                        |
+| Ручное движение          | `/bitrix/admin/zr_paidaccess_fund_movement_edit.php`    | Поступление или списание (источник `admin`); при списании — распределение долей |
+| Доли списания            | `/bitrix/admin/zr_paidaccess_fund_expense_view.php`     | Участники и суммы долей по ручному списанию                                     |
+| Документы                | `/bitrix/admin/zr_paidaccess_documents.php`             | Обязательные документы и текущие версии                                         |
+| Редактирование документа | `/bitrix/admin/zr_paidaccess_document_edit.php`         | Карточка документа, вкладка «Версии»                                            |
+| Новая версия документа   | `/bitrix/admin/zr_paidaccess_document_version_edit.php` | Публикация версии (файл + текст)                                                |
+| Шлюзы                    | `/bitrix/admin/zr_paidaccess_gateways.php`              | Список эквайрингов, экспорт/удаление                                            |
+| Редактирование шлюза     | `/bitrix/admin/zr_paidaccess_gateway_edit.php`          | Ключи T-Bank, тестовый платёж, Notification URL                                 |
+| Импорт шлюзов            | `/bitrix/admin/zr_paidaccess_gateway_import.php`        | Импорт JSON настроек                                                            |
+| Журнал                   | `/bitrix/admin/zr_paidaccess_logs.php`                  | Вкладки: события, аудит, запросы шлюза; **очистка** журналов и файлового лога   |
+| Настройки                | `/bitrix/admin/settings.php?mid=zr.paidaccess`          | Сумма взноса, биллинг, логи, почта                                              |
 
 ---
 
@@ -357,7 +441,8 @@ $APPLICATION->IncludeComponent(
 | `zr:personal.subscription` | Личный кабинет: статус подписки, кнопка оплаты                                                                                 |
 | `zr:member.payment.list`   | Список участников и статус оплаты (для модераторов)                                                                            |
 | `zr:fund.wallet`           | Кошелёк фонда: баланс из ledger, история движений (`+` поступления / `−` списания); компактный вывод идентификатора транзакции |
-| `zr:document.consent`      | Форма согласия с обязательными документами (ожидающие версии)                                                                  |
+| `zr:document.consent`      | Форма согласия с обязательными документами (ожидающие версии, только для авторизованных)                                       |
+| `zr:document.list`         | Публичный список опубликованных документов (ссылки на файлы / страницы)                                                        |
 
 Пример подключения подписки:
 
@@ -376,11 +461,11 @@ $APPLICATION->IncludeComponent(
 ## Страница блокировки и оплаты
 
 Шаблон по умолчанию: `/local/php_interface/zr.paidaccess/template_need_paid.php`  
-(копируется из `install/templates/` при установке).
+(копируется из `install/templates/` при установке; содержит PHP, HTML и CSS — правится на сайте).
 
-Выбор шаблона — опция **«Шаблон страницы блокировки»** в настройках модуля.
+Выбор шаблона — опция **«Шаблон страницы блокировки»** (`ACCESS_BLOCK_TEMPLATE`) в настройках модуля.
 
-Рендер: `PayBlockPageRenderer::render()` → создаёт/находит pending-платёж → `SubscriptionPaymentService::renderPaymentWidget()`.
+Поток в шаблоне: проверка шлюза → `SubscriptionPaymentService::preparePayment()` → разбивка суммы → `SubscriptionPaymentService::renderPaymentWidget()`. Подвал страницы — опция `BLOCK_PAGE_FOOTER_TEXT`.
 
 Способ оплаты на сайте (опция `PAYMENT_WIDGET_MODE`):
 
@@ -391,9 +476,7 @@ $APPLICATION->IncludeComponent(
 
 Показывается **раньше** страницы оплаты, если у пользователя есть неподтверждённые актуальные версии обязательных документов.
 
-Шаблон по умолчанию: `/local/php_interface/zr.paidaccess/template_document_consent.php`.
-
-Рендер: `DocumentConsentPageRenderer::render()` — список документов, чекбоксы, POST `version_ids[]`, безопасный редирект на исходный URL после принятия.
+Шаблон по умолчанию: `/local/php_interface/zr.paidaccess/template_document_consent.php` (самодостаточный: `DocumentConsentService`, POST `version_ids[]`, безопасный редирект на исходный URL после принятия, подвал из `BLOCK_PAGE_FOOTER_TEXT`).
 
 ---
 
@@ -402,7 +485,7 @@ $APPLICATION->IncludeComponent(
 ```
 Пользователь без оплаты
     → AccessBlockHandler (OnBeforeProlog)
-    → PayBlockPageRenderer
+    → include template_need_paid.php
     → SubscriptionPaymentService::preparePayment()
         → BillingPolicy::assertCanInitPayment()
         → GatewayFactory::getDefaultGatewayRow()
@@ -477,7 +560,10 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 | --------------------------------------------- | ---------------------------------------------------------------- |
 | `MODULE_ACTIVE`                               | Включить модуль                                                  |
 | `ACCESS_RESTRICTED_GROUPS`                    | Группы, для которых проверяется подписка                         |
-| `ACCESS_BLOCK_TEMPLATE`                       | Файл шаблона блокировки                                          |
+| `ACCESS_BLOCK_TEMPLATE`                       | Файл шаблона блокировки оплаты                                   |
+| `BLOCK_PAGE_FOOTER_TEXT`                      | Подвал на страницах согласия и оплаты                            |
+| `DOCUMENT_CONSENT_ENABLED`                    | Включить проверку согласия с документами                         |
+| `DOCUMENT_CONSENT_BLOCK_TEMPLATE`             | Файл шаблона страницы согласия                                   |
 | `SUBSCRIPTION_FUND_AMOUNT`                    | Фондовый взнос (руб.) — отображается в UI и попадает в ledger    |
 | `SUBSCRIPTION_TAX_AMOUNT`                     | Налоги (руб.) — часть счёта клиенту, не в ledger                 |
 | `SUBSCRIPTION_MAINTENANCE_AMOUNT`             | Содержание сайта / ФОТ (руб.) — часть счёта, не в ledger         |
@@ -547,6 +633,8 @@ use Zr\PaidAccess\Access\AccessControl;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\PublicUi\FundWalletService;
 use Zr\PaidAccess\PublicUi\FundContributorService;
+use Zr\PaidAccess\Document\RequiredDocumentService;
+use Zr\PaidAccess\Document\DocumentConsentService;
 use Zr\PaidAccess\Fund\FundMovementService;
 
 Loader::includeModule('zr.paidaccess');
@@ -573,6 +661,12 @@ $contributor = FundContributorService::getContributorData($userId);
 FundMovementService::recordExpense($fundId, 500.0, 'Расход по решению совета', [
     'source' => 'system',
 ]);
+
+// Опубликованный документ по коду (устав, политика, …)
+$charter = RequiredDocumentService::getByCode('charter');
+
+// Есть ли у пользователя неподтверждённые обязательные документы
+$hasPending = DocumentConsentService::hasPendingDocuments($userId);
 ```
 
 Создание шлюза программно — через `GatewayRepository` и админ-сервисы; для оплаты на сайте используется шлюз с флагом **«По умолчанию»** (`GatewayFactory::getDefaultGatewayRow()`).
@@ -605,7 +699,7 @@ composer test
 # или: php vendor/phpunit/phpunit/phpunit -c phpunit.xml.dist
 ```
 
-Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
+Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, **документы и согласие** (`RequiredDocumentService`, `DocumentVersionService`), логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
 
 ---
 
@@ -618,6 +712,7 @@ composer test
 5. **Списания с долей участников** — доли в `fund_expense_allocation`; остаток вклада = ledger − allocations.
 6. **Опции и мультисайтовость** — суффикс `_{SITE_ID}` в `b_option`, нормализация через `PaidAccessCore::normalizeSiteId()`.
 7. **Legacy сайта** (IBLOCK 13/14, `b_payments`, старые `api/tinkoff`) — только для чтения при миграции, не для нового кода.
+8. **Шаблоны блокировки на сайте** — редактируются в `/local/php_interface/zr.paidaccess/`; `install/templates/` — только эталон при установке.
 
 ---
 
