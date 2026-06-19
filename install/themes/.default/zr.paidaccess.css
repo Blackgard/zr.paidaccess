@@ -306,3 +306,99 @@
     vertical-align: middle;
     font-size: 13px;
 }
+
+/* Утилиты: индекс и карточки по группам */
+
+.zr-paidaccess-utilities-index .zr-utilities-group {
+    margin: 0 0 24px;
+    padding: 0;
+}
+
+.zr-paidaccess-utilities-index .zr-utilities-group__header {
+    margin-bottom: 12px;
+}
+
+.zr-paidaccess-utilities-index .zr-utilities-group__title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: #4b6267;
+}
+
+.zr-paidaccess-utilities-index .zr-utilities-group__description {
+    margin: 0;
+    color: #6a8086;
+    font-size: 13px;
+}
+
+.zr-paidaccess-utilities-index .zr-utilities-group__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+}
+
+.zr-utilities-card {
+    border: 1px solid #dce7ed;
+    border-radius: 4px;
+    background: #fff;
+    padding: 14px 16px;
+}
+
+.zr-utilities-card__title {
+    margin: 0 0 8px;
+    font-size: 15px;
+}
+
+.zr-utilities-card__title a {
+    text-decoration: none;
+}
+
+.zr-utilities-card__description {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: #6a8086;
+    line-height: 1.45;
+}
+
+.zr-utilities-card__actions {
+    margin: 0;
+}
+
+.zr-utilities-breadcrumb {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #6a8086;
+}
+
+.zr-utilities-breadcrumb a {
+    text-decoration: none;
+}
+
+.zr-utilities-breadcrumb__sep {
+    margin: 0 6px;
+    color: #b6c4cb;
+}
+
+.zr-utilities-step-hint {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: #6a8086;
+    line-height: 1.45;
+}
+
+.zr-utilities-form-actions {
+    margin: 12px 0 0;
+}
+
+.zr-utilities-form-actions .adm-btn,
+.zr-utilities-form-actions .adm-btn-save {
+    margin-right: 8px;
+}
+
+.zr-utilities-step-locked {
+    opacity: 0.92;
+}
+
+.zr-utilities-result-list {
+    margin: 8px 0 0 18px;
+    font-size: 13px;
+}

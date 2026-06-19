@@ -76,7 +76,9 @@ local/modules/zr.paidaccess/
 │   ├── zr_paidaccess_gateways.php
 │   ├── zr_paidaccess_gateway_edit.php
 │   ├── zr_paidaccess_gateway_import.php
-│   └── zr_paidaccess_logs.php
+│   ├── zr_paidaccess_logs.php
+│   ├── zr_paidaccess_utilities.php              # Хаб утилит (группы по смыслу)
+│   └── zr_paidaccess_util_document_iblock.php   # Миграция документов из инфоблока
 ├── classes/general/
 │   └── PaidAccessCore.php      # Константы и чтение опций (_s1, _ru, …)
 ├── lib/
@@ -86,7 +88,8 @@ local/modules/zr.paidaccess/
 │   ├── payment/                # Платежи, webhook, страница оплаты
 │   ├── Fund/                   # Фонд, ledger, баланс
 │   ├── Gateway/                # Шлюзы и провайдеры (Tinkoff, …)
-│   ├── Admin/                  # Сервисы админ-страниц
+│   ├── Admin/                  # Сервисы админ-страниц (в т.ч. миграция документов)
+│   ├── Utility/                # Реестр утилит, интроспекция инфоблоков, маппинг миграции
 │   ├── Public/                 # Классы с namespace PublicUi\ (компоненты)
 │   ├── notification/
 │   ├── log/
@@ -428,7 +431,27 @@ $APPLICATION->IncludeComponent(
 | Редактирование шлюза     | `/bitrix/admin/zr_paidaccess_gateway_edit.php`          | Ключи T-Bank, тестовый платёж, Notification URL                                 |
 | Импорт шлюзов            | `/bitrix/admin/zr_paidaccess_gateway_import.php`        | Импорт JSON настроек                                                            |
 | Журнал                   | `/bitrix/admin/zr_paidaccess_logs.php`                  | Вкладки: события, аудит, запросы шлюза; **очистка** журналов и файлового лога   |
+| Утилиты                  | `/bitrix/admin/zr_paidaccess_utilities.php`             | Хаб сервисных утилит, сгруппированных по назначению                             |
+| Миграция документов      | `/bitrix/admin/zr_paidaccess_util_document_iblock.php`  | Импорт элементов инфоблока в обязательные документы модуля                      |
 | Настройки                | `/bitrix/admin/settings.php?mid=zr.paidaccess`          | Сумма взноса, биллинг, логи, почта                                              |
+
+### Утилиты
+
+Сервисные инструменты вынесены в отдельный раздел меню. Группы и пункты описываются в **`UtilitiesRegistry`** (`lib/Utility/UtilitiesRegistry.php`) — при добавлении новой утилиты достаточно записи в реестре и отдельной admin-страницы.
+
+| Группа            | Код утилиты       | Назначение                                                                 |
+| ----------------- | ----------------- | -------------------------------------------------------------------------- |
+| Миграция данных   | `document_iblock` | Перенос элементов инфоблока в `zr_paidaccess_required_document` + версии |
+
+**Миграция документов из инфоблока** — трёхшаговый мастер:
+
+1. Выбор инфоблока-источника (`IblockIntrospectionService`).
+2. Сопоставление полей элемента и свойств с целевыми полями модуля (`DocumentMigrationTargetFields`, `DocumentMigrationMapping`, `DocumentMigrationValueResolver`).
+3. Предпросмотр и запуск (`DocumentIblockMigrationService`).
+
+Для каждого элемента создаётся документ и первая опубликованная версия (`DocumentVersionService::publishVersion()` с датой из маппинга). На pc-epoha legacy-источник — **инфоблок 12**, файл в свойстве **FILE**, дата публикации из **DATE_CREATE** (настраивается в маппинге).
+
+После обновления модуля скопируйте новые файлы из `install/admin/` в `/bitrix/admin/` или переустановите модуль.
 
 ---
 
@@ -699,7 +722,7 @@ composer test
 # или: php vendor/phpunit/phpunit/phpunit -c phpunit.xml.dist
 ```
 
-Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, **документы и согласие** (`RequiredDocumentService`, `DocumentVersionService`), логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
+Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, **документы и согласие** (`RequiredDocumentService`, `DocumentVersionService`), **утилиты** (`UtilitiesRegistry`, `DocumentMigrationValueResolver`), логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
 
 ---
 

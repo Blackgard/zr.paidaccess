@@ -121,7 +121,9 @@ class DocumentVersionService
             'FILE_ID' => $fileId > 0 ? $fileId : null,
             'BODY_HTML' => $bodyHtml !== '' ? $bodyHtml : null,
             'IS_CURRENT' => 'Y',
-            'DATE_PUBLISH' => $now,
+            'DATE_PUBLISH' => !empty($data['DATE_PUBLISH']) && $data['DATE_PUBLISH'] instanceof DateTime
+                ? $data['DATE_PUBLISH']
+                : $now,
             'CREATED_BY' => isset($data['CREATED_BY']) ? (int)$data['CREATED_BY'] : null,
         ]);
 
