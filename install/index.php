@@ -37,6 +37,8 @@ class zr_paidaccess extends CModule
         '/admin/zr_paidaccess_documents.php' => '/bitrix/admin/zr_paidaccess_documents.php',
         '/admin/zr_paidaccess_document_edit.php' => '/bitrix/admin/zr_paidaccess_document_edit.php',
         '/admin/zr_paidaccess_document_version_edit.php' => '/bitrix/admin/zr_paidaccess_document_version_edit.php',
+        '/admin/zr_paidaccess_utilities.php' => '/bitrix/admin/zr_paidaccess_utilities.php',
+        '/admin/zr_paidaccess_util_document_iblock.php' => '/bitrix/admin/zr_paidaccess_util_document_iblock.php',
         '/admin/zr_paidaccess_gateways.php' => '/bitrix/admin/zr_paidaccess_gateways.php',
         '/admin/zr_paidaccess_gateway_edit.php' => '/bitrix/admin/zr_paidaccess_gateway_edit.php',
         '/admin/zr_paidaccess_gateway_import.php' => '/bitrix/admin/zr_paidaccess_gateway_import.php',

@@ -50,6 +50,14 @@ return [
                 ],
             ],
             [
+                'text' => GetMessage('ZR_PAIDACCESS_MENU_UTILITIES'),
+                'title' => GetMessage('ZR_PAIDACCESS_MENU_UTILITIES'),
+                'url' => 'zr_paidaccess_utilities.php?lang=' . LANGUAGE_ID,
+                'more_url' => [
+                    'zr_paidaccess_util_document_iblock.php',
+                ],
+            ],
+            [
                 'text' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'title' => GetMessage('ZR_PAIDACCESS_MENU_GATEWAYS'),
                 'url' => 'zr_paidaccess_gateways.php?lang=' . LANGUAGE_ID,
