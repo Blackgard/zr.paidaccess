@@ -13,6 +13,8 @@ use Zr\PaidAccess\Utility\DocumentMigrationTargetFields;
 use Zr\PaidAccess\Utility\IblockIntrospectionService;
 use Zr\PaidAccess\Utility\UtilitiesRegistry;
 
+global $APPLICATION;
+
 $moduleId = PaidAccessCore::MODULE_ID;
 
 Loader::includeModule($moduleId);
@@ -53,11 +55,8 @@ $iblockId = (int)$request->getPost('iblock_id');
 if ($iblockId <= 0) {
     $iblockId = (int)$request->get('iblock_id');
 }
-if ($iblockId <= 0) {
-    $iblockId = DocumentIblockMigrationService::loadSavedIblockId($siteId);
-}
 
-$mapping = DocumentIblockMigrationService::loadSavedMapping($siteId);
+$mapping = DocumentMigrationTargetFields::getDefaultSources();
 if ($request->isPost() && check_bitrix_sessid()) {
     $postedMapping = DocumentMigrationMapping::fromRequest($request->getPostList()->toArray());
     if ($postedMapping !== []) {
@@ -81,13 +80,7 @@ $migrateResult = null;
 
 if ($request->isPost() && check_bitrix_sessid()) {
     if ($request->getPost('load_schema') !== null) {
-        DocumentIblockMigrationService::saveMapping($siteId, $iblockId, $mapping);
         $message = Loc::getMessage('ZR_PAIDACCESS_UTIL_SCHEMA_LOADED');
-    }
-
-    if ($request->getPost('save_mapping') !== null) {
-        DocumentIblockMigrationService::saveMapping($siteId, $iblockId, $mapping);
-        $message = Loc::getMessage('ZR_PAIDACCESS_UTIL_MAPPING_SAVED');
     }
 
     if ($request->getPost('preview_migration') !== null) {
@@ -247,7 +240,6 @@ if ($message !== null) {
             </table>
 
             <p class="zr-utilities-form-actions">
-                <input type="submit" name="save_mapping" class="adm-btn" value="<?= Loc::getMessage('ZR_PAIDACCESS_UTIL_SAVE_MAPPING') ?>">
                 <input type="submit" name="preview_migration" class="adm-btn" value="<?= Loc::getMessage('ZR_PAIDACCESS_UTIL_PREVIEW') ?>">
             </p>
             </div>

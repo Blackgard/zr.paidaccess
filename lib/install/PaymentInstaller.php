@@ -12,6 +12,7 @@ class PaymentInstaller
     private const OPTION_SCHEMA_PERIOD = 'SCHEMA_PAYMENT_BILLING_PERIOD_16';
     private const OPTION_SCHEMA_PAYMENT_URL = 'SCHEMA_PAYMENT_GATEWAY_URL_512';
     private const OPTION_SCHEMA_AMOUNT_BREAKDOWN = 'SCHEMA_PAYMENT_AMOUNT_BREAKDOWN';
+    private const OPTION_SCHEMA_COVERED_PERIODS = 'SCHEMA_PAYMENT_COVERED_PERIODS';
 
     public static function ensureSchema(): void
     {
@@ -45,6 +46,8 @@ class PaymentInstaller
         }
 
         if (Option::get(PaidAccessCore::MODULE_ID, self::OPTION_SCHEMA_AMOUNT_BREAKDOWN, 'N') === 'Y') {
+            self::ensureCoveredPeriodsColumn($connection, $table);
+
             return;
         }
 
@@ -61,6 +64,21 @@ class PaymentInstaller
         self::backfillPaymentAmountBreakdown();
 
         Option::set(PaidAccessCore::MODULE_ID, self::OPTION_SCHEMA_AMOUNT_BREAKDOWN, 'Y');
+        self::ensureCoveredPeriodsColumn($connection, $table);
+    }
+
+    private static function ensureCoveredPeriodsColumn($connection, string $table): void
+    {
+        $helper = $connection->getSqlHelper();
+        $fields = $connection->getTableFields($table);
+        if (!isset($fields['COVERED_PERIODS'])) {
+            $sql = 'ALTER TABLE ' . $helper->quote($table)
+                . ' ADD ' . $helper->quote('COVERED_PERIODS') . ' TEXT NULL';
+
+            $connection->queryExecute($sql);
+        }
+
+        Option::set(PaidAccessCore::MODULE_ID, self::OPTION_SCHEMA_COVERED_PERIODS, 'Y');
     }
 
     private static function backfillPaymentAmountBreakdown(): void

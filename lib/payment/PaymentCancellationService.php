@@ -2,21 +2,22 @@
 
 namespace Zr\PaidAccess\Payment;
 
-use Zr\PaidAccess\Admin\PaymentAdminService;
 use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Enum\PaymentStatus;
+use Zr\PaidAccess\Gateway\Contract\GatewayCancellableInterface;
 use Zr\PaidAccess\Gateway\GatewayFactory;
 use Zr\PaidAccess\Gateway\GatewayRepository;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffGateway;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Subscription\SubscriptionService;
 use Zr\PaidAccess\Tools\RequestContext;
 
 /**
- * Отмена платежа в модуле и в платёжном шлюзе (T-Bank Cancel).
+ * Отмена платежа в модуле и в платёжном шлюзе.
  */
 class PaymentCancellationService
 {
+    private const MANUAL_GATEWAY_CODE = 'manual';
+
     /**
      * @param array<string, mixed> $payment
      */
@@ -41,7 +42,7 @@ class PaymentCancellationService
     }
 
     /**
-     * Запрос Cancel в T-Bank: для незавершённых — отмена сессии, для CONFIRMED — полный возврат.
+     * Запрос Cancel в шлюз: для незавершённых — отмена сессии, для оплаченных — возврат, если шлюз это поддерживает.
      *
      * @param array<string, mixed> $payment
      */
@@ -50,7 +51,9 @@ class PaymentCancellationService
         $gatewayCode = (string)($payment['GATEWAY_CODE'] ?? '');
         $gatewayPaymentId = trim((string)($payment['GATEWAY_PAYMENT_ID'] ?? ''));
 
-        return $gatewayCode === TinkoffGateway::CODE && $gatewayPaymentId !== '';
+        return $gatewayCode !== ''
+            && $gatewayCode !== self::MANUAL_GATEWAY_CODE
+            && $gatewayPaymentId !== '';
     }
 
     public static function cancel(int $paymentId): void
@@ -88,16 +91,11 @@ class PaymentCancellationService
         );
 
         if ($gatewayApiCalled) {
-            self::cancelInTinkoff($payment, $gatewayPaymentId);
-        } elseif ($gatewayCode !== PaymentAdminService::MANUAL_GATEWAY_CODE
-            && $gatewayCode !== ''
-            && $gatewayPaymentId !== ''
-        ) {
-            throw new \RuntimeException('Отмена через API не поддерживается для шлюза: ' . $gatewayCode);
+            self::cancelInGateway($payment, $gatewayPaymentId);
         } else {
             GatewayTransactionRepository::log(
                 $paymentId,
-                $gatewayCode !== '' ? $gatewayCode : PaymentAdminService::MANUAL_GATEWAY_CODE,
+                $gatewayCode !== '' ? $gatewayCode : self::MANUAL_GATEWAY_CODE,
                 GatewayEventType::CANCEL,
                 RequestContext::wrapPayload('admin_cancel', [
                     'paymentId' => $paymentId,
@@ -138,11 +136,11 @@ class PaymentCancellationService
     /**
      * @param array<string, mixed> $payment
      */
-    private static function cancelInTinkoff(array $payment, string $gatewayPaymentId): void
+    private static function cancelInGateway(array $payment, string $gatewayPaymentId): void
     {
         $gatewayId = (int)($payment['GATEWAY_ID'] ?? 0);
         if ($gatewayId <= 0) {
-            throw new \RuntimeException('Не указан шлюз платежа для отмены в T-Bank');
+            throw new \RuntimeException('Не указан шлюз платежа для отмены через API');
         }
 
         $gatewayRow = GatewayRepository::getById($gatewayId);
@@ -151,8 +149,8 @@ class PaymentCancellationService
         }
 
         $gateway = GatewayFactory::createFromRow($gatewayRow, true);
-        if (!$gateway instanceof TinkoffGateway) {
-            throw new \RuntimeException('Шлюз #' . $gatewayId . ' не является T-Bank');
+        if (!$gateway instanceof GatewayCancellableInterface) {
+            throw new \RuntimeException('Отмена через API не поддерживается для шлюза: ' . (string)$payment['GATEWAY_CODE']);
         }
 
         $amountRub = PaymentStatus::grantsAccess((string)$payment['STATUS'])
@@ -162,7 +160,7 @@ class PaymentCancellationService
         $response = $gateway->cancelPayment($gatewayPaymentId, (int)$payment['ID'], $amountRub);
         if (empty($response['Success'])) {
             $message = trim((string)($response['Message'] ?? 'Cancel failed') . ' ' . (string)($response['Details'] ?? ''));
-            throw new \RuntimeException($message !== '' ? $message : 'T-Bank отклонил отмену платежа');
+            throw new \RuntimeException($message !== '' ? $message : 'Шлюз отклонил отмену платежа');
         }
     }
 }

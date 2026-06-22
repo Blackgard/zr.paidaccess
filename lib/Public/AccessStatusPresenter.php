@@ -2,7 +2,7 @@
 
 namespace Zr\PaidAccess\PublicUi;
 
-use Zr\PaidAccess\Admin\SubscriberAdminService;
+use Zr\PaidAccess\Access\SubscriberAccessService;
 
 /**
  * Подписи и CSS-классы статуса доступа для публичных компонентов.
@@ -15,14 +15,14 @@ class AccessStatusPresenter
     public static function getPublicLabels(): array
     {
         return [
-            SubscriberAdminService::ACCESS_ACTIVE => 'Доступ активен',
-            SubscriberAdminService::ACCESS_PENDING => 'Ожидает оплаты',
-            SubscriberAdminService::ACCESS_UNPAID => 'Не оплачено',
-            SubscriberAdminService::ACCESS_DEBT => 'Просрочена оплата',
-            SubscriberAdminService::ACCESS_FAILED => 'Ошибка оплаты',
-            SubscriberAdminService::ACCESS_EXPIRED => 'Подписка истекла',
-            SubscriberAdminService::ACCESS_EXEMPT => 'Без проверки',
-            SubscriberAdminService::ACCESS_ADMIN => 'Администратор',
+            SubscriberAccessService::ACCESS_ACTIVE => 'Доступ активен',
+            SubscriberAccessService::ACCESS_PENDING => 'Ожидает оплаты',
+            SubscriberAccessService::ACCESS_UNPAID => 'Не оплачено',
+            SubscriberAccessService::ACCESS_DEBT => 'Просрочена оплата',
+            SubscriberAccessService::ACCESS_FAILED => 'Ошибка оплаты',
+            SubscriberAccessService::ACCESS_EXPIRED => 'Подписка истекла',
+            SubscriberAccessService::ACCESS_EXEMPT => 'Без проверки',
+            SubscriberAccessService::ACCESS_ADMIN => 'Администратор',
         ];
     }
 
@@ -36,10 +36,10 @@ class AccessStatusPresenter
     public static function isDebtHighlight(string $accessStatus): bool
     {
         return in_array($accessStatus, [
-            SubscriberAdminService::ACCESS_DEBT,
-            SubscriberAdminService::ACCESS_FAILED,
-            SubscriberAdminService::ACCESS_EXPIRED,
-            SubscriberAdminService::ACCESS_UNPAID,
+            SubscriberAccessService::ACCESS_DEBT,
+            SubscriberAccessService::ACCESS_FAILED,
+            SubscriberAccessService::ACCESS_EXPIRED,
+            SubscriberAccessService::ACCESS_UNPAID,
         ], true);
     }
 
@@ -50,16 +50,16 @@ class AccessStatusPresenter
 
     public static function getBadgeCssClass(string $accessStatus): string
     {
-        if ($accessStatus === SubscriberAdminService::ACCESS_ACTIVE) {
+        if ($accessStatus === SubscriberAccessService::ACCESS_ACTIVE) {
             return 'zr-paidaccess-badge--ok';
         }
-        if ($accessStatus === SubscriberAdminService::ACCESS_PENDING) {
+        if ($accessStatus === SubscriberAccessService::ACCESS_PENDING) {
             return 'zr-paidaccess-badge--pending';
         }
         if (self::isDebtHighlight($accessStatus)) {
             return 'zr-paidaccess-badge--debt';
         }
-        if ($accessStatus === SubscriberAdminService::ACCESS_EXEMPT || $accessStatus === SubscriberAdminService::ACCESS_ADMIN) {
+        if ($accessStatus === SubscriberAccessService::ACCESS_EXEMPT || $accessStatus === SubscriberAccessService::ACCESS_ADMIN) {
             return 'zr-paidaccess-badge--muted';
         }
 
@@ -69,14 +69,14 @@ class AccessStatusPresenter
     public static function getSortPriority(string $accessStatus): int
     {
         $map = [
-            SubscriberAdminService::ACCESS_DEBT => 10,
-            SubscriberAdminService::ACCESS_FAILED => 20,
-            SubscriberAdminService::ACCESS_EXPIRED => 30,
-            SubscriberAdminService::ACCESS_UNPAID => 40,
-            SubscriberAdminService::ACCESS_PENDING => 50,
-            SubscriberAdminService::ACCESS_ACTIVE => 60,
-            SubscriberAdminService::ACCESS_EXEMPT => 70,
-            SubscriberAdminService::ACCESS_ADMIN => 80,
+            SubscriberAccessService::ACCESS_DEBT => 10,
+            SubscriberAccessService::ACCESS_FAILED => 20,
+            SubscriberAccessService::ACCESS_EXPIRED => 30,
+            SubscriberAccessService::ACCESS_UNPAID => 40,
+            SubscriberAccessService::ACCESS_PENDING => 50,
+            SubscriberAccessService::ACCESS_ACTIVE => 60,
+            SubscriberAccessService::ACCESS_EXEMPT => 70,
+            SubscriberAccessService::ACCESS_ADMIN => 80,
         ];
 
         return $map[$accessStatus] ?? 90;

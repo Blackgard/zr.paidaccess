@@ -4,7 +4,8 @@ namespace Zr\PaidAccess\Payment;
 
 use Bitrix\Main\Type\DateTime;
 use Zr\PaidAccess\Enum\GatewayEventType;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffPaymentUrlResolver;
+use Zr\PaidAccess\Gateway\Contract\GatewayPaymentUrlExtractorInterface;
+use Zr\PaidAccess\Gateway\Provider\GatewayProviderRegistry;
 use Zr\PaidAccess\Tables\GatewayTransactionTable;
 use Zr\PaidAccess\Tools\Logger;
 
@@ -240,7 +241,7 @@ class GatewayTransactionRepository
 
             'limit' => 1,
 
-            'select' => ['RESPONSE_DATA'],
+            'select' => ['RESPONSE_DATA', 'GATEWAY_CODE'],
 
         ])->fetch();
 
@@ -248,6 +249,11 @@ class GatewayTransactionRepository
             return '';
         }
 
-        return TinkoffPaymentUrlResolver::extractFromPayload($row['RESPONSE_DATA'] ?? '');
+        $provider = GatewayProviderRegistry::getProvider((string)($row['GATEWAY_CODE'] ?? ''));
+        if (!$provider instanceof GatewayPaymentUrlExtractorInterface) {
+            return '';
+        }
+
+        return $provider->extractPaymentUrl($row['RESPONSE_DATA'] ?? '');
     }
 }

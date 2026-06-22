@@ -2,12 +2,13 @@
 
 namespace Zr\PaidAccess\Gateway\Providers\Tinkoff;
 
+use Zr\PaidAccess\Gateway\Contract\GatewayPaymentUrlExtractorInterface;
 use Zr\PaidAccess\Gateway\Contract\GatewayReceiptCapableInterface;
 use Zr\PaidAccess\Gateway\Contract\PaymentGatewayInterface;
 use Zr\PaidAccess\Gateway\Dto\ReceiptDeliveryInfo;
 use Zr\PaidAccess\Gateway\Provider\AbstractGatewayProvider;
 
-class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptCapableInterface
+class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptCapableInterface, GatewayPaymentUrlExtractorInterface
 {
     public function getCode(): string
     {
@@ -135,6 +136,20 @@ class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptC
     public function createGateway(array $gatewayRow): PaymentGatewayInterface
     {
         return new TinkoffGateway($gatewayRow);
+    }
+
+    public function normalizeOptions(array $options, bool $isTest): array
+    {
+        if ($isTest) {
+            $options['test_mode'] = 'Y';
+        }
+
+        return $options;
+    }
+
+    public function extractPaymentUrl($payload): string
+    {
+        return TinkoffPaymentUrlResolver::extractFromPayload($payload);
     }
 
     public function getWebhookOkContentType(): string

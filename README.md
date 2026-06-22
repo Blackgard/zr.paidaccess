@@ -23,6 +23,7 @@
 - Модуль `main`
 - Исходящий HTTPS-доступ к `securepay.tinkoff.ru:443` (боевой API) и при тестах — к `rest-api-test.tinkoff.ru` (после добавления IP в whitelist T-Bank)
 - `allow_url_fopen = On` (для HTTP-клиента Bitrix)
+- при режиме оплаты **QR СБП** (`PAYMENT_WIDGET_MODE=qr_sbp`, по умолчанию) браузер пользователя загружает QR-изображение с `https://api.qrserver.com` (см. [Внешние зависимости](#внешние-зависимости))
 
 ---
 
@@ -38,7 +39,7 @@
 
 При установке и обновлении автоматически:
 
-- создаются/обновляются таблицы ORM (`PaymentInstaller`, `GatewayInstaller`, `GatewayTransactionInstaller`, **`FundInstaller`**, **`DocumentInstaller`**);
+- создаются/обновляются таблицы ORM (`PaymentInstaller`, `GatewayInstaller`, `GatewayTransactionInstaller`, `FundInstaller`, `DocumentInstaller`);
 - для каждого активного сайта создаётся фонд по умолчанию (`CODE=default`);
 - при первом появлении ledger выполняется **backfill** поступлений по уже оплаченным платежам (опция `FUND_MOVEMENTS_BACKFILLED`);
 - копируются файлы админки в `/bitrix/admin/` (в т.ч. раздел «Документы»);
@@ -59,7 +60,7 @@ local/modules/zr.paidaccess/
 ├── install/
 │   ├── index.php               # CModule: БД, события, копирование файлов
 │   ├── version.php
-│   ├── components/zr/          # personal.subscription, member.payment.list, fund.wallet, document.consent, document.list
+│   ├── components/zr/          # personal.subscription, member.payment.list, fund.wallet, document.consent, document.list, panel
 │   └── templates/              # template_need_paid.php, template_document_consent.php (самодостаточные PHP+HTML)
 ├── admin/                      # Копируется в /bitrix/admin/
 │   ├── menu.php
@@ -88,9 +89,9 @@ local/modules/zr.paidaccess/
 │   ├── payment/                # Платежи, webhook, страница оплаты
 │   ├── Fund/                   # Фонд, ledger, баланс
 │   ├── Gateway/                # Шлюзы и провайдеры (Tinkoff, …)
-│   ├── Admin/                  # Сервисы админ-страниц (в т.ч. миграция документов)
+│   ├── Admin/                  # Сервисы админ-страниц (в т.ч. PaymentAdminEditService, миграция документов)
 │   ├── Utility/                # Реестр утилит, интроспекция инфоблоков, маппинг миграции
-│   ├── Public/                 # Классы с namespace PublicUi\ (компоненты)
+│   ├── Public/                 # Namespace PublicUi\ — компоненты, PaymentWidgetPresenter, legacy page renderers
 │   ├── notification/
 │   ├── log/
 │   ├── tables/                 # ORM DataManager
@@ -102,11 +103,17 @@ local/modules/zr.paidaccess/
 │   ├── webhook.php
 │   └── verify_webhook_token.php
 ├── options.php
-├── include.php
+├── include.php                 # Подключает autoload.production.map.php
+├── autoload.production.map.php # Production class map
 ├── default_option.php
 ├── lang/ru/
 └── tests/                      # PHPUnit (dev)
 ```
+
+Архитектурные правила разработки:
+
+- [docs/STRUCTURE.md](docs/STRUCTURE.md) — утверждённая структура каталогов, namespaces и правила добавления файлов;
+- [docs/BOUNDARIES.md](docs/BOUNDARIES.md) — границы слоёв, legacy-запреты и правила зависимостей.
 
 Подробнее о добавлении нового банка: [lib/Gateway/Providers/README.md](lib/Gateway/Providers/README.md).
 
@@ -139,7 +146,7 @@ local/modules/zr.paidaccess/
 - `GATEWAY_PAYMENT_URL` — ссылка на платёжную форму (`PaymentURL` из Init);
 - `STATUS` — см. `PaymentStatus`.
 
-Миграции схемы без переустановки: `PaymentInstaller::ensureSchema()`, `GatewayInstaller::ensureSchema()`, `GatewayTransactionInstaller::ensureSchema()`, **`FundInstaller::ensureSchema()`**, **`DocumentInstaller::ensureSchema()`** (вызываются из `install/index.php`).
+Миграции схемы без переустановки: `PaymentInstaller::ensureSchema()`, `GatewayInstaller::ensureSchema()`, `GatewayTransactionInstaller::ensureSchema()`, `FundInstaller::ensureSchema()`, `DocumentInstaller::ensureSchema()` (вызываются из `install/index.php`). Managed-файлы (admin, components, themes) обновляются через `FileInstaller::ensureFiles()` при установке и обновлении.
 
 ---
 
@@ -217,7 +224,7 @@ local/modules/zr.paidaccess/
 ### Публичный кошелёк
 
 `FundWalletService::getWalletData($siteId)` → баланс, число уникальных плательщиков, список движений для шаблона.  
-Компонент **`zr:fund.wallet`** — страница «Кошелёк учредительного фонда» (баланс + история `+`/`-`).
+Компонент `**zr:fund.wallet`\*\* — страница «Кошелёк учредительного фонда» (баланс + история `+`/`-`).
 
 Колонка «Транзакция» в истории:
 
@@ -269,22 +276,24 @@ OnBeforeProlog → DocumentConsentControl (есть неподписанные �
 1. **Сервисы → Платёжный доступ → Документы** — создать документ (код, название, сайт, флаги «Обязательный» / «Активен»).
 2. На вкладке **«Версии»** карточки документа — **«Опубликовать новую версию»**.
 3. Загрузить файл и/или заполнить текст для страницы согласия → **«Опубликовать»**.
-4. В настройках модуля (вкладка «Доступ к сайту») включить **`DOCUMENT_CONSENT_ENABLED`**.
+4. В настройках модуля (вкладка «Доступ к сайту») включить `DOCUMENT_CONSENT_ENABLED`.
 
 Просмотр опубликованных версий — по ссылке номера версии на вкладке «Версии». Действия пишутся в `zr_paidaccess_audit_log` (`required_document`, `required_document_version`).
 
 ### Сервисы
 
-| Класс                         | Назначение                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| `DocumentConsentService`      | Список ожидающих документов, batch-принятие                                     |
-| `RequiredDocumentService`     | Публичный каталог: список опубликованных документов, получение по `CODE` / `ID` |
-| `DocumentVersionService`      | Публикация версии, URL файла, формат номера версии                              |
-| `DocumentConsentControl`      | Нужна ли страница блокировки согласия                                           |
-| `DocumentConsentPageRenderer` | Legacy full-page UI (view в модуле; шаблон сайта — самодостаточный)             |
-| `DocumentListViewService`     | View-model для компонента `zr:document.list`                                    |
-| `DocumentConsentViewService`  | View-model для компонента `zr:document.consent`                                 |
-| `DocumentAdminService`        | CRUD документов и публикация версий в админке                                   |
+| Класс                                  | Назначение                                                                      |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| `DocumentConsentService`               | Список ожидающих документов, batch-принятие                                     |
+| `RequiredDocumentService`              | Публичный каталог: список опубликованных документов, получение по `CODE` / `ID` |
+| `DocumentVersionService`               | Публикация версии, URL файла, формат номера версии                              |
+| `DocumentConsentControl`               | Нужна ли страница блокировки согласия                                           |
+| `PublicUi\DocumentConsentPageRenderer` | Legacy full-page UI (BC-алиас в `Document\`; шаблон сайта — самодостаточный)    |
+| `PublicUi\PayBlockPageRenderer`        | Legacy full-page оплаты (BC-алиас в `Payment\`)                                 |
+| `PublicUi\PaymentWidgetPresenter`      | HTML виджета оплаты (QR / кнопка) из данных gateway                             |
+| `DocumentListViewService`              | View-model для компонента `zr:document.list`                                    |
+| `DocumentConsentViewService`           | View-model для компонента `zr:document.consent`                                 |
+| `DocumentAdminService`                 | CRUD документов и публикация версий в админке                                   |
 
 ### Публичный каталог документов (`RequiredDocumentService`)
 
@@ -340,11 +349,11 @@ $doc = RequiredDocumentService::getByCode('policy', null, '/documents/#CODE#/');
 | `template_document_consent.php` | Full-page согласие: логика + HTML + CSS inline |
 | `template_need_paid.php`        | Full-page оплата: логика + HTML + CSS inline   |
 
-Оба шаблона вызывают сервисы модуля напрямую (`DocumentConsentService`, `SubscriptionPaymentService` и др.), а не рендереры из `lib/`. Классы `DocumentConsentPageRenderer` и `PayBlockPageRenderer` остаются в модуле для обратной совместимости.
+Оба шаблона вызывают сервисы модуля напрямую (`DocumentConsentService`, `SubscriptionPaymentService` и др.), а не рендереры из `lib/`. Классы `PublicUi\PayBlockPageRenderer` и `PublicUi\DocumentConsentPageRenderer` остаются для обратной совместимости (алиасы в `Payment\` и `Document\`).
 
-Компонент **`zr:document.consent`** — встраиваемая форма согласия для авторизованного пользователя (ожидающие версии). Основной сценарий блокировки — full-page шаблон выше.
+Компонент `**zr:document.consent`\*\* — встраиваемая форма согласия для авторизованного пользователя (ожидающие версии). Основной сценарий блокировки — full-page шаблон выше.
 
-Компонент **`zr:document.list`** — таблица опубликованных документов для публичных страниц (устав, политика, соглашение и т.д.).
+Компонент `zr:document.list` — таблица опубликованных документов для публичных страниц (устав, политика, соглашение и т.д.).
 
 Пример списка документов:
 
@@ -437,11 +446,11 @@ $APPLICATION->IncludeComponent(
 
 ### Утилиты
 
-Сервисные инструменты вынесены в отдельный раздел меню. Группы и пункты описываются в **`UtilitiesRegistry`** (`lib/Utility/UtilitiesRegistry.php`) — при добавлении новой утилиты достаточно записи в реестре и отдельной admin-страницы.
+Сервисные инструменты вынесены в отдельный раздел меню. Группы и пункты описываются в `**UtilitiesRegistry`\*\* (`lib/Utility/UtilitiesRegistry.php`) — при добавлении новой утилиты достаточно записи в реестре и отдельной admin-страницы.
 
-| Группа            | Код утилиты       | Назначение                                                                 |
-| ----------------- | ----------------- | -------------------------------------------------------------------------- |
-| Миграция данных   | `document_iblock` | Перенос элементов инфоблока в `zr_paidaccess_required_document` + версии |
+| Группа          | Код утилиты       | Назначение                                                               |
+| --------------- | ----------------- | ------------------------------------------------------------------------ |
+| Миграция данных | `document_iblock` | Перенос элементов инфоблока в `zr_paidaccess_required_document` + версии |
 
 **Миграция документов из инфоблока** — трёхшаговый мастер:
 
@@ -451,7 +460,9 @@ $APPLICATION->IncludeComponent(
 
 Для каждого элемента создаётся документ и первая опубликованная версия (`DocumentVersionService::publishVersion()` с датой из маппинга). На pc-epoha legacy-источник — **инфоблок 12**, файл в свойстве **FILE**, дата публикации из **DATE_CREATE** (настраивается в маппинге).
 
-После обновления модуля скопируйте новые файлы из `install/admin/` в `/bitrix/admin/` или переустановите модуль.
+Мастер миграции stateless: выбранный инфоблок и mapping не сохраняются в опциях модуля и применяются только в рамках текущей формы.
+
+При обновлении модуля managed-файлы админки, компонентов и theme CSS обновляются через `Install\FileInstaller`.
 
 ---
 
@@ -466,6 +477,7 @@ $APPLICATION->IncludeComponent(
 | `zr:fund.wallet`           | Кошелёк фонда: баланс из ledger, история движений (`+` поступления / `−` списания); компактный вывод идентификатора транзакции |
 | `zr:document.consent`      | Форма согласия с обязательными документами (ожидающие версии, только для авторизованных)                                       |
 | `zr:document.list`         | Публичный список опубликованных документов (ссылки на файлы / страницы)                                                        |
+| `zr:panel`                 | Панель модератора: транзакции, документы, участники (`/panel/`)                                                                |
 
 Пример подключения подписки:
 
@@ -492,8 +504,20 @@ $APPLICATION->IncludeComponent(
 
 Способ оплаты на сайте (опция `PAYMENT_WIDGET_MODE`):
 
-- `qr_sbp` — QR СБП (по умолчанию);
-- `payment_button` — кнопка «Перейти к оплате» (форма T-Bank).
+- `qr_sbp` — QR СБП (по умолчанию); картинка QR рендерится через внешний сервис `api.qrserver.com` в браузере пользователя;
+- `payment_button` — кнопка «Перейти к оплате» (форма T-Bank), без `api.qrserver.com`.
+
+### Внешние зависимости
+
+| Сервис                     | Кто обращается       | Когда                               | Назначение                                  |
+| -------------------------- | -------------------- | ----------------------------------- | ------------------------------------------- |
+| `securepay.tinkoff.ru`     | PHP (сервер)         | всегда при оплате                   | Init / GetQr / GetState / Cancel API T-Bank |
+| `rest-api-test.tinkoff.ru` | PHP (сервер)         | тестовый шлюз                       | тестовый API T-Bank                         |
+| `api.qrserver.com`         | браузер пользователя | только `PAYMENT_WIDGET_MODE=qr_sbp` | рендер QR-изображения из SBP payload        |
+
+Подробности, ограничения и отсутствие fallback для QR — в [docs/BOUNDARIES.md](docs/BOUNDARIES.md) (раздел «QR image rendering»).
+
+Локальная генерация QR-изображений **не используется** по решению проекта: payload СБП приходит от T-Bank, а картинка строится через `<img src="https://api.qrserver.com/...">`.
 
 ### Страница согласия с документами
 
@@ -515,8 +539,8 @@ $APPLICATION->IncludeComponent(
         → PaymentRepository (pending за период)
         → ensureGatewayInit() → TinkoffGateway::initPayment() → Init API
     → renderPaymentWidget()
-        → fetchPaymentForm() → GetState / GetQr / PaymentURL
-    → HTML QR или кнопка
+        → fetchPaymentForm() → GetState / GetQr / PaymentURL (данные в InitPaymentResult)
+        → PaymentWidgetPresenter::renderFromResult() → HTML QR или кнопка
 
 Оплата в банке
     → POST webhook.php?id={gateway_id}
@@ -567,10 +591,12 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 
 1. **Шлюз в админке**: TerminalKey, SecretKey, тестовый/боевой режим, чек 54-ФЗ при необходимости.
 2. **ЛК T-Bank → Магазины → Терминалы → Настроить**:
-    - Подключение: Универсальное;
+
+- Подключение: Универсальное;
     - Уведомления: HTTP;
     - Notification URL — см. выше.
-3. **Тестовая среда** (`rest-api-test.tinkoff.ru`): IP сервера должен быть в whitelist (запрос в T-Бизнес / openapi@tbank.ru). Без whitelist — HTTP 403.
+
+3. **Тестовая среда** (`rest-api-test.tinkoff.ru`): IP сервера должен быть в whitelist (запрос в T-Бизнес / [openapi@tbank.ru](mailto:openapi@tbank.ru)). Без whitelist — HTTP 403.
 4. **Боевая среда**: снять «Тестовый API», использовать `securepay.tinkoff.ru`.
 
 ---
@@ -617,7 +643,7 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 
 ## Логирование
 
-Единый файловый лог: **`/upload/logs/zr.paidaccess.log`** (путь настраивается).
+Единый файловый лог: `**/upload/logs/zr.paidaccess.log`\*\* (путь настраивается).
 
 Класс: `Zr\PaidAccess\Tools\Logger`.
 
@@ -641,7 +667,7 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 - `zr_paidaccess_gateway_transaction` — вкладка «Платёжный шлюз» (полные request/response, HTTP-код, webhook);
 - `zr_paidaccess_audit_log` — вкладка «Аудит» (в т.ч. фонды и ручные движения).
 
-Очистка журналов и файлового лога — **`LogCleanupAdminService`** (кнопки на странице журнала).
+Очистка журналов и файлового лога — `**LogCleanupAdminService`\*\* (кнопки на странице журнала).
 
 ---
 
@@ -722,7 +748,9 @@ composer test
 # или: php vendor/phpunit/phpunit/phpunit -c phpunit.xml.dist
 ```
 
-Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, **документы и согласие** (`RequiredDocumentService`, `DocumentVersionService`), **утилиты** (`UtilitiesRegistry`, `DocumentMigrationValueResolver`), логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
+Покрытие: биллинг, статусы платежей, Tinkoff API (токен, разбор ответов), **фонд и ledger**, распределение списаний, **кошелёк и вклад участника**, **документы и согласие**, **архитектурные границы** (`tests/Unit/Architecture/*`), **presentation** (`PaymentWidgetPresenter`), **admin form orchestration** (`PaymentAdminEditService`), утилиты, логгер, админ-хелперы. Тесты не требуют установленного Bitrix (stubs в `tests/Stubs/`).
+
+Новый production-класс регистрируется в `autoload.production.map.php`; test-only provider classes — в `autoload.test-extra.map.php` (см. [docs/STRUCTURE.md](docs/STRUCTURE.md#autoload)).
 
 ---
 
@@ -736,6 +764,9 @@ composer test
 6. **Опции и мультисайтовость** — суффикс `_{SITE_ID}` в `b_option`, нормализация через `PaidAccessCore::normalizeSiteId()`.
 7. **Legacy сайта** (IBLOCK 13/14, `b_payments`, старые `api/tinkoff`) — только для чтения при миграции, не для нового кода.
 8. **Шаблоны блокировки на сайте** — редактируются в `/local/php_interface/zr.paidaccess/`; `install/templates/` — только эталон при установке.
+9. **Autoload** — production map в `autoload.production.map.php`; gateway providers подхватываются `GatewayProviderLoader`.
+10. **Presentation** — HTML виджетов оплаты в `PublicUi\PaymentWidgetPresenter`; gateway возвращает `qrPayload` / `paymentUrl`.
+11. **Admin forms** — orchestration в `*AdminEditService`, write-логика в `*AdminService` / domain services.
 
 ---
 
@@ -751,7 +782,7 @@ composer test
 
 Вы можете свободно использовать, изменять и распространять код — в том числе в коммерческих проектах — при условии, что в копиях и производных работах **сохраняется уведомление об авторских правах** и текст лицензии:
 
-> Copyright (c) 2020-2026 ZR studio (https://alexandr-zr.ru/)  
+> Copyright (c) 2020-2026 ZR studio ([https://alexandr-zr.ru/](https://alexandr-zr.ru/))  
 > Author: Alexandr Drachenin
 
 Рекомендуем также указывать ссылку на репозиторий и сайт разработчика в документации проекта.

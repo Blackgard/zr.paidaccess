@@ -23,6 +23,8 @@ class PaidAccessCore
     /** Проверка согласия с обязательными документами */
     public const OPTION_DOCUMENT_CONSENT_ENABLED = 'DOCUMENT_CONSENT_ENABLED';
     public const OPTION_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'DOCUMENT_CONSENT_BLOCK_TEMPLATE';
+    /** Требовать открытие файла/HTML перед включением чекбокса согласия */
+    public const OPTION_DOCUMENT_CONSENT_REQUIRE_OPEN = 'DOCUMENT_CONSENT_REQUIRE_OPEN';
     public const OPTION_SUBSCRIPTION_AMOUNT = 'SUBSCRIPTION_AMOUNT';
     /** Фондовый взнос (отображается в UI и попадает в ledger) */
     public const OPTION_SUBSCRIPTION_FUND_AMOUNT = 'SUBSCRIPTION_FUND_AMOUNT';
@@ -42,6 +44,8 @@ class PaidAccessCore
     public const OPTION_BILLING_ENFORCE_ONE_PAYMENT = 'BILLING_ENFORCE_ONE_PAYMENT';
     /** Льготные дни после срока оплаты до блокировки */
     public const OPTION_BILLING_GRACE_DAYS = 'BILLING_GRACE_DAYS';
+    /** Взыскивать пропущенные периоды одним платежом */
+    public const OPTION_BILLING_COLLECT_ARREARS = 'BILLING_COLLECT_ARREARS';
     /** Информационное письмо с сайта после оплаты (не фискальный чек) */
     public const OPTION_PAYMENT_EMAIL_NOTIFY = 'PAYMENT_EMAIL_NOTIFY';
     /** Текст ошибки на странице оплаты (для пользователя) */
@@ -103,6 +107,7 @@ class PaidAccessCore
     public const DEFAULT_BILLING_SHORT_MONTH_POLICY = self::BILLING_SHORT_MONTH_LAST_DAY;
     public const DEFAULT_BILLING_ENFORCE_ONE_PAYMENT = 'Y';
     public const DEFAULT_BILLING_GRACE_DAYS = '0';
+    public const DEFAULT_BILLING_COLLECT_ARREARS = 'Y';
     public const DEFAULT_PAYMENT_EMAIL_NOTIFY = 'Y';
     public const DEFAULT_PAYMENT_PAGE_ERROR_TEXT = 'Не удалось сформировать платёж. Пожалуйста, свяжитесь с администрацией сайта или попробуйте позже.';
     public const DEFAULT_BLOCK_PAGE_FOOTER_TEXT = 'Если что-то пошло не так, напишите администратору: admin@example.com';
@@ -133,6 +138,7 @@ class PaidAccessCore
     public const DEFAULT_BLOCK_TEMPLATE = 'template_need_paid.php';
     public const DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE = 'template_document_consent.php';
     public const DEFAULT_DOCUMENT_CONSENT_ENABLED = 'Y';
+    public const DEFAULT_DOCUMENT_CONSENT_REQUIRE_OPEN = 'Y';
 
     /** Группы по умолчанию для проверки подписки (ID через запятую) */
     public const DEFAULT_ACCESS_RESTRICTED_GROUPS = '2';
@@ -198,6 +204,15 @@ class PaidAccessCore
             self::DEFAULT_DOCUMENT_CONSENT_BLOCK_TEMPLATE,
             $siteId
         );
+    }
+
+    public static function isDocumentConsentRequireOpen(?string $siteId = null): bool
+    {
+        return self::getOptionByCode(
+            self::OPTION_DOCUMENT_CONSENT_REQUIRE_OPEN,
+            self::DEFAULT_DOCUMENT_CONSENT_REQUIRE_OPEN,
+            $siteId
+        ) === 'Y';
     }
 
     /**
@@ -352,6 +367,15 @@ class PaidAccessCore
         $raw = (int)self::getOptionByCode(self::OPTION_BILLING_GRACE_DAYS, self::DEFAULT_BILLING_GRACE_DAYS, $siteId);
 
         return max(0, $raw);
+    }
+
+    public static function isBillingCollectArrears(?string $siteId = null): bool
+    {
+        return self::getOptionByCode(
+            self::OPTION_BILLING_COLLECT_ARREARS,
+            self::DEFAULT_BILLING_COLLECT_ARREARS,
+            $siteId
+        ) === 'Y';
     }
 
     public static function isPaymentEmailNotifyEnabled(?string $siteId = null): bool

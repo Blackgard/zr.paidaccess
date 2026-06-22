@@ -3,7 +3,7 @@
 /**
  * Шаблон страницы оплаты подписки (блокировка доступа).
  * Редактируйте этот файл свободно — при обновлении модуля он не перезаписывается.
- * Бизнес-логика: SubscriptionPaymentService, SubscriptionAmountBreakdown, BillingPolicy.
+ * Бизнес-логика: SubscriptionPaymentService, SubscriptionPaymentQuote, BillingPolicy.
  */
 
 use Bitrix\Main\Loader;
@@ -12,7 +12,7 @@ use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\Subscription\BillingPolicy;
-use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
+use Zr\PaidAccess\Subscription\SubscriptionPaymentQuote;
 
 global $USER;
 
@@ -41,13 +41,25 @@ if (!Loader::includeModule(PaidAccessCore::MODULE_ID)) {
     }
 }
 
-$breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
-$billingPeriod = SubscriptionPaymentService::getCurrentBillingPeriod($userId, $siteId);
-$billingPeriodLabel = BillingPolicy::formatPeriodLabel($billingPeriod, $siteId);
+$quote = SubscriptionPaymentQuote::forUser($userId, $siteId);
+if ($modulePaymentId > 0) {
+    $paymentQuote = SubscriptionPaymentQuote::fromPaymentId($modulePaymentId, $siteId);
+    if ($paymentQuote !== null) {
+        $quote = $paymentQuote;
+    }
+}
+
+$breakdown = $quote->totalBreakdown;
+$monthlyBreakdown = $quote->monthlyBreakdown;
+$billingPeriod = $quote->coveredPeriods !== [] ? $quote->coveredPeriods[count($quote->coveredPeriods) - 1] : '';
+$billingPeriodLabel = $quote->periodsRangeLabel !== ''
+    ? $quote->periodsRangeLabel
+    : BillingPolicy::formatPeriodLabel($billingPeriod, $siteId);
 $paymentPageErrorText = PaidAccessCore::getPaymentPageErrorText($siteId);
 $footerText = PaidAccessCore::getBlockPageFooterText($siteId);
 
-$showBreakdown = $breakdown->chargeTotal > $breakdown->fundAmount;
+$showBreakdown = $quote->showComponentBreakdown();
+$isArrearsPayment = $quote->isArrearsPayment;
 $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
 ?>
 <!DOCTYPE html>
@@ -150,6 +162,8 @@ $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
             color: #1a1a1a;
         }
         .rows li.total span:last-child { font-weight: 600; color: #1a1a1a; }
+        .rows li.arrears-note { font-size: 0.85rem; color: #6b7280; }
+        .rows li.arrears-period { padding-left: 8px; }
         .pay { padding-top: 16px; border-top: 1px solid #e5e7eb; }
         .pay__hint { margin: 0 0 12px; text-align: center; font-size: 0.9rem; color: #6b7280; }
         .zr-paidaccess-pay form { margin: 0; }
@@ -200,7 +214,13 @@ $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
         <?php else: ?>
             <h1>Доступ ограничен</h1>
             <p class="lead">
-                Для продолжения работы с сайтом оплатите ежемесячный взнос за период <strong><?= $periodText ?></strong>.
+                <?php if ($isArrearsPayment): ?>
+                    Для продолжения работы с сайтом оплатите задолженность за <strong><?= (int)$quote->periodCount ?></strong>
+                    <?= $quote->periodCount === 1 ? 'период' : ($quote->periodCount < 5 ? 'периода' : 'периодов') ?>
+                    (<strong><?= $periodText ?></strong>) одним платежом.
+                <?php else: ?>
+                    Для продолжения работы с сайтом оплатите ежемесячный взнос за период <strong><?= $periodText ?></strong>.
+                <?php endif; ?>
             </p>
 
             <?php if (!empty($infoMessages)): ?>
@@ -214,8 +234,14 @@ $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
                     <?php if ($showBreakdown): ?>
                         <p class="sum__label">К оплате</p>
                         <p class="sum__amount"><?= number_format($breakdown->chargeTotal, 0, '.', ' ') ?> ₽</p>
-                        <p class="sum__period">Период: <?= $periodText ?></p>
+                        <p class="sum__period">Период<?= $isArrearsPayment ? 'ы' : '' ?>: <?= $periodText ?></p>
                         <ul class="rows">
+                            <?php if ($isArrearsPayment): ?>
+                                <li class="arrears-note"><span>Задолженность</span><span><?= (int)$quote->periodCount ?> × <?= number_format($monthlyBreakdown->chargeTotal, 0, '.', ' ') ?> ₽</span></li>
+                                <?php foreach ($quote->coveredPeriodLabels as $periodLabel): ?>
+                                    <li class="arrears-period"><span><?= htmlspecialcharsbx($periodLabel) ?></span><span><?= number_format($monthlyBreakdown->chargeTotal, 0, '.', ' ') ?> ₽</span></li>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                             <li><span>Налоги</span><span><?= number_format($breakdown->taxAmount, 0, '.', ' ') ?> ₽</span></li>
                             <li><span>Содержание сайта (ФОТ)</span><span><?= number_format($breakdown->maintenanceAmount, 0, '.', ' ') ?> ₽</span></li>
                             <li><span>Средства в учредительный фонд</span><span><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</span></li>
@@ -224,7 +250,16 @@ $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
                     <?php else: ?>
                         <p class="sum__label">Фондовый взнос</p>
                         <p class="sum__amount"><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</p>
-                        <p class="sum__period">Период: <?= $periodText ?></p>
+                        <p class="sum__period">Период<?= $isArrearsPayment ? 'ы' : '' ?>: <?= $periodText ?></p>
+                        <?php if ($isArrearsPayment): ?>
+                            <ul class="rows">
+                                <li class="arrears-note"><span>Задолженность</span><span><?= (int)$quote->periodCount ?> × <?= number_format($monthlyBreakdown->fundAmount, 0, '.', ' ') ?> ₽</span></li>
+                                <?php foreach ($quote->coveredPeriodLabels as $periodLabel): ?>
+                                    <li class="arrears-period"><span><?= htmlspecialcharsbx($periodLabel) ?></span><span><?= number_format($monthlyBreakdown->fundAmount, 0, '.', ' ') ?> ₽</span></li>
+                                <?php endforeach; ?>
+                                <li class="total"><span>Итого</span><span><?= number_format($breakdown->fundAmount, 0, '.', ' ') ?> ₽</span></li>
+                            </ul>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
 
@@ -235,7 +270,7 @@ $periodText = htmlspecialcharsbx($billingPeriodLabel ?? $billingPeriod);
                         if (Loader::includeModule(PaidAccessCore::MODULE_ID)) {
                             SubscriptionPaymentService::renderPaymentWidget($modulePaymentId);
                         }
-                ?>
+?>
                     </div>
                 </div>
             <?php endif; ?>

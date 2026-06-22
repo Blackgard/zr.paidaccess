@@ -15,7 +15,7 @@ $MESS['ZR_PAIDACCESS_UTIL_IBLOCK_SELECT'] = '— выберите инфобло
 $MESS['ZR_PAIDACCESS_UTIL_IBLOCK_UNAVAILABLE'] = 'Модуль iblock не установлен или недоступен';
 
 $MESS['ZR_PAIDACCESS_UTIL_LOAD_SCHEMA'] = 'Загрузить поля инфоблока';
-$MESS['ZR_PAIDACCESS_UTIL_SCHEMA_LOADED'] = 'Схема инфоблока загружена, сопоставление сохранено.';
+$MESS['ZR_PAIDACCESS_UTIL_SCHEMA_LOADED'] = 'Схема инфоблока загружена.';
 $MESS['ZR_PAIDACCESS_UTIL_MAPPING_HINT'] = 'Слева — поля модуля zr.paidaccess (карточка документа и версия). Справа — поле или свойство элемента инфоблока. Минимум нужны: название, код, файл или HTML-текст версии.';
 $MESS['ZR_PAIDACCESS_UTIL_TARGET_FIELD'] = 'Поле в модуле';
 $MESS['ZR_PAIDACCESS_UTIL_SOURCE_FIELD'] = 'Источник в инфоблоке';
@@ -23,13 +23,11 @@ $MESS['ZR_PAIDACCESS_UTIL_GROUP_DOCUMENT'] = 'Документ';
 $MESS['ZR_PAIDACCESS_UTIL_GROUP_VERSION'] = 'Версия';
 $MESS['ZR_PAIDACCESS_UTIL_MAP_SKIP'] = '— не использовать —';
 
-$MESS['ZR_PAIDACCESS_UTIL_SAVE_MAPPING'] = 'Сохранить сопоставление';
 $MESS['ZR_PAIDACCESS_UTIL_PREVIEW'] = 'Предпросмотр (15 элементов)';
 $MESS['ZR_PAIDACCESS_UTIL_PREVIEW_TITLE'] = 'Предпросмотр переноса';
 $MESS['ZR_PAIDACCESS_UTIL_SKIP_EXISTING'] = 'Пропускать документы с уже существующим CODE на сайте';
 $MESS['ZR_PAIDACCESS_UTIL_RUN'] = 'Выполнить перенос';
 $MESS['ZR_PAIDACCESS_UTIL_RUN_CONFIRM'] = 'Запустить перенос документов из инфоблока в модуль?';
-$MESS['ZR_PAIDACCESS_UTIL_MAPPING_SAVED'] = 'Сопоставление сохранено.';
 
 $MESS['ZR_PAIDACCESS_UTIL_MIGRATE_SUCCESS'] = 'Перенос завершён.';
 $MESS['ZR_PAIDACCESS_UTIL_MIGRATE_PARTIAL'] = 'Перенос завершён с ошибками:';

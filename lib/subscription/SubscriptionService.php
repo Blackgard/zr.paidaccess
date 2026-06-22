@@ -4,6 +4,7 @@ namespace Zr\PaidAccess\Subscription;
 
 use Bitrix\Main\Type\DateTime;
 use Zr\PaidAccess\Enum\SubscriptionStatus;
+use Zr\PaidAccess\Payment\PaymentCoveredPeriods;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Subscription\BillingPolicy;
 use Zr\PaidAccess\Tables\SubscriptionTable;
@@ -13,7 +14,11 @@ class SubscriptionService
     public static function activateFromPayment(int $userId, int $paymentId, DateTime $paidAt): void
     {
         $billingDay = BillingPolicy::resolveBillingDay($userId);
-        $periodEnd = BillingPolicy::calcSubscriptionPeriodEnd($paidAt, $userId);
+        $payment = PaymentRepository::getById($paymentId);
+        $coveredPeriods = is_array($payment) ? PaymentCoveredPeriods::fromPaymentRow($payment) : [];
+        $periodEnd = $coveredPeriods !== []
+            ? BillingPolicy::calcSubscriptionPeriodEndForCoveredPeriods($coveredPeriods, $userId)
+            : BillingPolicy::calcSubscriptionPeriodEnd($paidAt, $userId);
 
         $existing = SubscriptionTable::getList([
             'filter' => ['=USER_ID' => $userId],

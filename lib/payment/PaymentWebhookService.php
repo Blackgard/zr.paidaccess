@@ -46,19 +46,19 @@ class PaymentWebhookService
         $orderId = $result->orderId;
         $modulePayment = PaymentRepository::findForWebhook(
             $orderId,
-            (string)($payload['PaymentId'] ?? $result->gatewayPaymentId),
+            $result->gatewayPaymentId,
             (int)$gatewayId
         );
         $modulePaymentId = is_array($modulePayment) ? (int)$modulePayment['ID'] : 0;
 
         ModuleEventLogService::info(
             'webhook_received',
-            'Входящий webhook T-Bank',
+            'Входящий webhook платёжного шлюза',
             array_merge($requestMeta, [
                 'gatewayId' => (int)$gatewayId,
-                'orderId' => (string)($payload['OrderId'] ?? ''),
-                'bankStatus' => (string)($payload['Status'] ?? ''),
-                'paymentId' => (string)($payload['PaymentId'] ?? ''),
+                'orderId' => $orderId,
+                'gatewayStatus' => $result->gatewayStatus,
+                'gatewayPaymentId' => $result->gatewayPaymentId,
             ]),
             $modulePaymentId > 0 ? $modulePaymentId : null,
             $modulePayment ? (int)$modulePayment['USER_ID'] : null
@@ -86,8 +86,7 @@ class PaymentWebhookService
                     'orderId' => $orderId,
                     'gatewayStatus' => $result->gatewayStatus,
                     'gatewayId' => (int)$gatewayId,
-                    'payloadTerminalKey' => (string)($payload['TerminalKey'] ?? ''),
-                    'bankPaymentId' => (string)($payload['PaymentId'] ?? ''),
+                    'gatewayPaymentId' => $result->gatewayPaymentId,
                 ],
                 $modulePayment ? (int)$modulePayment['ID'] : null,
                 $modulePayment ? (int)$modulePayment['USER_ID'] : null
@@ -106,11 +105,11 @@ class PaymentWebhookService
         } elseif ($result->valid && !$modulePayment && $orderId !== '') {
             ModuleEventLogService::warning(
                 'payment_webhook_not_found',
-                'Webhook принят, но платёж не найден по OrderId/PaymentId',
+                'Webhook принят, но платёж не найден по идентификаторам шлюза',
                 [
                     'orderId' => $orderId,
                     'gatewayStatus' => $result->gatewayStatus,
-                    'bankPaymentId' => (string)($payload['PaymentId'] ?? ''),
+                    'gatewayPaymentId' => $result->gatewayPaymentId,
                     'gatewayId' => (int)$gatewayId,
                 ]
             );

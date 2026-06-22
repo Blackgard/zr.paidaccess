@@ -192,7 +192,8 @@ public function handleWebhook(array $payload): WebhookHandleResult;
 - `description` — назначение платежа;
 - `userId` — пользователь Bitrix;
 - `email` / `phone` — контакты пользователя, если доступны;
-- `paymentUrl` — уже сохранённая ссылка, если Init выполнялся раньше.
+- `paymentUrl` — уже сохранённая ссылка, если Init выполнялся раньше;
+- `paymentWidgetMode` — режим UI (`qr_sbp` / `payment_button`); задаёт вызывающий Payment-слой, gateway не читает `PaidAccessCore`.
 
 На успехе верните `InitPaymentResult` с:
 
@@ -209,14 +210,25 @@ return InitPaymentResult::fail('Понятная ошибка для админ�
 
 ### `fetchPaymentForm()`
 
-Возвращает то, что увидит пользователь на странице оплаты.
+Возвращает данные для отображения формы оплаты (`InitPaymentResult`).
 
-Допустимые варианты:
+Перед вызовом вызывающий слой (`SubscriptionPaymentService`, `GatewayTestService`) должен
+заполнить `$request->paymentWidgetMode` из `PaidAccessCore::getPaymentWidgetMode($siteId)`.
+Gateway-адаптер не читает опции модуля напрямую.
 
-- `html` с QR СБП;
-- `html` с кнопкой перехода на платёжную форму банка;
-- `paymentUrl`, если дальше используется ссылка;
-- `qrPayload`, если payload нужен отдельно.
+HTML для пользователя собирает `PublicUi\PaymentWidgetPresenter::renderFromResult()` —
+gateway не должен возвращать готовую разметку.
+
+Допустимые поля результата:
+
+- `qrPayload` — payload СБП для QR;
+- `paymentUrl` — ссылка на платёжную форму банка;
+- `autoRedirectPaymentButton` — автопереход на `paymentUrl` (режим кнопки);
+- `html` — только для обратной совместимости; production-path Tinkoff оставляет пустым.
+
+Для Tinkoff в режиме QR СБП картинка строится через внешний image service `api.qrserver.com`
+(запрос выполняет браузер пользователя, см. `docs/BOUNDARIES.md`). Локальная генерация
+QR-изображения в модуле не используется.
 
 Если банк не поддерживает QR СБП, можно вернуть кнопку оплаты. Если банк сначала
 создаёт invoice, а ссылку отдаёт отдельным методом, вызывайте этот метод здесь.
@@ -333,7 +345,7 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 Чтобы новый банк работал с этой проверкой, достаточно корректно реализовать:
 
 - `initPayment()` — создать платёж в банке;
-- `fetchPaymentForm()` — вернуть непустой `html`;
+- `fetchPaymentForm()` — вернуть `qrPayload` / `paymentUrl` (или непустой `html` для legacy);
 - `handleWebhook()` — вернуть `PaymentStatus::PAID` или `AUTHORIZED` на успешный
   callback банка.
 

@@ -4,6 +4,7 @@ namespace Zr\PaidAccess\Gateway\Dto;
 
 /**
  * Ответ шлюза для отображения пользователю.
+ * Gateway возвращает данные (`qrPayload`, `paymentUrl`); HTML собирает `PublicUi\PaymentWidgetPresenter`.
  *
  * Порядок аргументов конструктора:
  * success, gatewayPaymentId, paymentUrl, qrPayload, html, errorMessage, rawResponse
@@ -30,6 +31,9 @@ class InitPaymentResult
 
     /** @var string */
     public $rawResponse;
+
+    /** @var bool Автопереход на paymentUrl (кнопка оплаты) */
+    public $autoRedirectPaymentButton = false;
 
     public function __construct(
         $success,

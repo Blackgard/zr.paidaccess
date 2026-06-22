@@ -9,6 +9,7 @@ use Bitrix\Main\ORM\Fields\IntegerField;
 use Bitrix\Main\ORM\Fields\Relations\OneToMany;
 use Bitrix\Main\ORM\Fields\Relations\Reference;
 use Bitrix\Main\ORM\Fields\StringField;
+use Bitrix\Main\ORM\Fields\TextField;
 use Bitrix\Main\ORM\Fields\Validators\LengthValidator;
 use Bitrix\Main\ORM\Query\Join;
 use Bitrix\Main\Type\DateTime;
@@ -66,6 +67,9 @@ class PaymentTable extends DataManager
             /** Платёжный период: YYYY-MM, YYYY-MM-DD (anchor) или служебные коды (GT) */
             (new StringField('BILLING_PERIOD'))
                 ->addValidator(new LengthValidator(null, 16)),
+
+            /** JSON-массив периодов, покрываемых одним платежом (задолженность) */
+            (new TextField('COVERED_PERIODS')),
 
             (new StringField('GATEWAY_CODE'))
                 ->configureRequired()

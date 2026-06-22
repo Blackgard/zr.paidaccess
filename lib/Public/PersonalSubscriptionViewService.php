@@ -3,12 +3,12 @@
 namespace Zr\PaidAccess\PublicUi;
 
 use Bitrix\Main\Type\DateTime;
-use Zr\PaidAccess\Admin\SubscriberAdminService;
+use Zr\PaidAccess\Access\SubscriberAccessService;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 use Zr\PaidAccess\Subscription\BillingPolicy;
-use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
+use Zr\PaidAccess\Subscription\SubscriptionPaymentQuote;
 use Zr\PaidAccess\Tables\SubscriptionTable;
 
 class PersonalSubscriptionViewService
@@ -27,10 +27,10 @@ class PersonalSubscriptionViewService
         ])->fetch() ?: null;
 
         $billingPeriod = SubscriptionPaymentService::getCurrentBillingPeriod($userId, $siteId);
-        $payments = SubscriberAdminService::loadCurrentPeriodPaymentsByUserIds([$userId]);
+        $payments = SubscriberAccessService::loadCurrentPeriodPaymentsByUserIds([$userId]);
         $currentPayment = $payments[$userId] ?? null;
 
-        $accessStatus = SubscriberAdminService::resolveAccessStatus($userId, $subscription, $currentPayment);
+        $accessStatus = SubscriberAccessService::resolveAccessStatus($userId, $subscription, $currentPayment);
         $periodEnd = is_array($subscription) ? ($subscription['PERIOD_END'] ?? null) : null;
 
         $modulePaymentId = 0;
@@ -43,7 +43,9 @@ class PersonalSubscriptionViewService
         }
 
         $dueDate = BillingPolicy::getDueDateForPeriod($userId, $billingPeriod, $siteId);
-        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
+        $quote = SubscriptionPaymentQuote::forUser($userId, $siteId);
+        $breakdown = $quote->totalBreakdown;
+        $monthlyBreakdown = $quote->monthlyBreakdown;
 
         return [
             'USER_ID' => $userId,
@@ -52,6 +54,11 @@ class PersonalSubscriptionViewService
             'ACCESS_BADGE_CLASS' => AccessStatusPresenter::getBadgeCssClass($accessStatus),
             'BILLING_PERIOD' => $billingPeriod,
             'BILLING_PERIOD_LABEL' => BillingPolicy::formatPeriodLabel($billingPeriod, $siteId),
+            'COVERED_PERIODS' => $quote->coveredPeriods,
+            'COVERED_PERIOD_LABELS' => $quote->coveredPeriodLabels,
+            'COVERED_PERIODS_RANGE_LABEL' => $quote->periodsRangeLabel,
+            'PERIOD_COUNT' => $quote->periodCount,
+            'IS_ARREARS_PAYMENT' => $quote->isArrearsPayment,
             'PERIOD_END' => self::formatDisplayDate($periodEnd),
             'PERIOD_END_RAW' => $periodEnd,
             'DAYS_LEFT' => self::daysUntil($periodEnd),
@@ -61,15 +68,17 @@ class PersonalSubscriptionViewService
             'AMOUNT_FORMATTED' => number_format($breakdown->fundAmount, 0, '.', ' '),
             'CHARGE_TOTAL' => $breakdown->chargeTotal,
             'CHARGE_TOTAL_FORMATTED' => number_format($breakdown->chargeTotal, 0, '.', ' '),
+            'MONTHLY_CHARGE_TOTAL' => $monthlyBreakdown->chargeTotal,
+            'MONTHLY_CHARGE_TOTAL_FORMATTED' => number_format($monthlyBreakdown->chargeTotal, 0, '.', ' '),
             'TAX_AMOUNT' => $breakdown->taxAmount,
             'TAX_AMOUNT_FORMATTED' => number_format($breakdown->taxAmount, 0, '.', ' '),
             'MAINTENANCE_AMOUNT' => $breakdown->maintenanceAmount,
             'MAINTENANCE_AMOUNT_FORMATTED' => number_format($breakdown->maintenanceAmount, 0, '.', ' '),
-            'SHOW_AMOUNT_BREAKDOWN' => $breakdown->chargeTotal > $breakdown->fundAmount,
+            'SHOW_AMOUNT_BREAKDOWN' => $quote->showComponentBreakdown(),
             'SHOW_PAYMENT_BLOCK' => $showPaymentBlock,
             'MODULE_PAYMENT_ID' => $modulePaymentId,
             'CAN_INIT_PAYMENT' => BillingPolicy::canInitPayment($userId, $siteId) || $modulePaymentId > 0,
-            'IS_ACTIVE' => $accessStatus === SubscriberAdminService::ACCESS_ACTIVE,
+            'IS_ACTIVE' => $accessStatus === SubscriberAccessService::ACCESS_ACTIVE,
         ];
     }
 
@@ -78,11 +87,11 @@ class PersonalSubscriptionViewService
      */
     protected static function shouldShowPaymentBlock(string $accessStatus, ?array $currentPayment): bool
     {
-        if ($accessStatus === SubscriberAdminService::ACCESS_ACTIVE) {
+        if ($accessStatus === SubscriberAccessService::ACCESS_ACTIVE) {
             return false;
         }
 
-        if ($accessStatus === SubscriberAdminService::ACCESS_EXEMPT || $accessStatus === SubscriberAdminService::ACCESS_ADMIN) {
+        if ($accessStatus === SubscriberAccessService::ACCESS_EXEMPT || $accessStatus === SubscriberAccessService::ACCESS_ADMIN) {
             return false;
         }
 

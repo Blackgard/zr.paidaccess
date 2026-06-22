@@ -157,4 +157,47 @@ class RequiredDocumentService
             $template
         );
     }
+
+    /**
+     * Все документы сайта для списка модератора (включая без версии).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getModeratorList(?string $siteId = null): array
+    {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        $documents = RequiredDocumentRepository::getList(['=SITE_ID' => $siteId]);
+        $items = [];
+
+        foreach ($documents as $document) {
+            $id = (int)$document['ID'];
+            $version = RequiredDocumentVersionRepository::getCurrentByDocumentId($id);
+
+            $dateCreate = '';
+            if (!empty($document['DATE_CREATE'])) {
+                $dateCreate = $document['DATE_CREATE'] instanceof \Bitrix\Main\Type\DateTime
+                    ? $document['DATE_CREATE']->format('d.m.Y H:i:s')
+                    : (string)$document['DATE_CREATE'];
+            }
+
+            $items[] = [
+                'ID' => $id,
+                'TITLE' => (string)($document['TITLE'] ?? ''),
+                'CODE' => (string)($document['CODE'] ?? ''),
+                'ACTIVE' => ($document['ACTIVE'] ?? 'N') === 'Y',
+                'IS_REQUIRED' => ($document['IS_REQUIRED'] ?? 'N') === 'Y',
+                'DATE_CREATE' => $dateCreate,
+                'VERSION_LABEL' => $version !== null
+                    ? DocumentVersionService::formatVersionLabel((string)($version['VERSION'] ?? ''))
+                    : '—',
+                'DATE_PUBLISH' => $version !== null
+                    ? RequiredDocumentVersionRepository::getPublishDateFormatted($version, false)
+                    : '—',
+                'FILE_URL' => $version !== null ? (string)(DocumentVersionService::resolveFileUrl($version) ?? '') : '',
+                'ADMIN_EDIT_URL' => '/bitrix/admin/zr_paidaccess_document_edit.php?ID=' . $id . '&lang=' . LANGUAGE_ID,
+            ];
+        }
+
+        return $items;
+    }
 }

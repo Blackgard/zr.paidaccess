@@ -143,6 +143,17 @@ final class BillingPolicyTest extends TestCase
         $this->assertSame('23:59:59', $deadline->format('H:i:s'));
     }
 
+    public function testGetPreviousBillingPeriodForCalendarMonth(): void
+    {
+        $this->assertSame('2026-02', BillingPolicy::getPreviousBillingPeriod('2026-03', 0, 's1'));
+    }
+
+    public function testCompareBillingPeriodsUsesChronologicalOrder(): void
+    {
+        $this->assertLessThan(0, BillingPolicy::compareBillingPeriods('2026-02', '2026-03'));
+        $this->assertSame(0, BillingPolicy::compareBillingPeriods('2026-03', '2026-03'));
+    }
+
     private function setFixedAnchorDay(int $day): void
     {
         Option::set(

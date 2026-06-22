@@ -27,6 +27,12 @@ interface GatewayProviderInterface
     public function getDefaultOptions();
 
     /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    public function normalizeOptions(array $options, bool $isTest): array;
+
+    /**
      * @param array<string, mixed> $gatewayRow строка zr_paidaccess_gateway
      */
     public function createGateway(array $gatewayRow): PaymentGatewayInterface;

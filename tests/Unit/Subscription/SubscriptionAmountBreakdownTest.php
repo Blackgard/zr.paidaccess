@@ -70,4 +70,26 @@ class SubscriptionAmountBreakdownTest extends TestCase
         $this->assertSame(500.0, $manual->chargeTotal);
         $this->assertSame(0.0, $manual->taxAmount);
     }
+
+    public function testMultiplyScalesAllComponents(): void
+    {
+        $monthly = new SubscriptionAmountBreakdown(1000.0, 130.0, 300.0);
+        $total = $monthly->multiply(3);
+
+        $this->assertSame(3000.0, $total->fundAmount);
+        $this->assertSame(390.0, $total->taxAmount);
+        $this->assertSame(900.0, $total->maintenanceAmount);
+        $this->assertSame(4290.0, $total->chargeTotal);
+    }
+
+    public function testDivideRestoresMonthlyAmount(): void
+    {
+        $monthly = new SubscriptionAmountBreakdown(1000.0, 130.0, 300.0);
+        $total = $monthly->multiply(4);
+        $restored = $total->divide(4);
+
+        $this->assertSame(1000.0, $restored->fundAmount);
+        $this->assertSame(130.0, $restored->taxAmount);
+        $this->assertSame(300.0, $restored->maintenanceAmount);
+    }
 }

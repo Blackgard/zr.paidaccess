@@ -14,10 +14,9 @@ define('NOT_CHECK_PERMISSIONS', true);
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
 use Bitrix\Main\Loader;
+use Zr\PaidAccess\Gateway\Contract\GatewayWebhookDebugVerifierInterface;
 use Zr\PaidAccess\Gateway\GatewayFactory;
 use Zr\PaidAccess\Gateway\GatewayRepository;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffApiClient;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffConfig;
 use Zr\PaidAccess\PaidAccessCore;
 
 if (PHP_SAPI !== 'cli') {
@@ -67,24 +66,28 @@ if (!$gatewayRow) {
     exit(1);
 }
 
-$config = new TinkoffConfig(GatewayRepository::getOptionsForGateway($gatewayRow));
-$client = new TinkoffApiClient($config->getTerminalKey(), $config->getSecretKey(), $config->isTestMode());
+$gateway = GatewayFactory::createById($gatewayId);
+if (!$gateway instanceof GatewayWebhookDebugVerifierInterface) {
+    fwrite(STDERR, "Шлюз #{$gatewayId} не поддерживает диагностику подписи webhook.\n");
+    exit(2);
+}
 
-$payloadTerminal = trim((string)($payload['TerminalKey'] ?? ''));
-$configuredTerminal = $config->getTerminalKey();
+$debugInfo = $gateway->getWebhookDebugInfo($payload);
+$payloadTerminal = $debugInfo['payloadTerminalKey'];
+$configuredTerminal = $debugInfo['configuredTerminalKey'];
 
 echo "Шлюз #{$gatewayId}\n";
 echo "TerminalKey в настройках: {$configuredTerminal}\n";
 echo "TerminalKey в webhook:    {$payloadTerminal}\n";
-echo 'Поля подписи: ' . implode(', ', $client->getNotificationTokenFieldNames($payload)) . "\n";
+echo 'Поля подписи: ' . implode(', ', $debugInfo['tokenFields']) . "\n";
 
 if ($payloadTerminal !== '' && $configuredTerminal !== '' && $payloadTerminal !== $configuredTerminal) {
     echo "Результат: FAIL — TerminalKey не совпадает.\n";
     exit(2);
 }
 
-$received = (string)($payload['Token'] ?? '');
-$expected = $client->buildNotificationToken($payload);
+$received = $debugInfo['receivedToken'];
+$expected = $debugInfo['expectedToken'];
 
 if ($received === '' || !hash_equals($expected, $received)) {
     echo "Результат: FAIL — Invalid Token\n";
@@ -96,7 +99,6 @@ if ($received === '' || !hash_equals($expected, $received)) {
 echo "Результат: OK — подпись webhook валидна.\n";
 
 try {
-    $gateway = GatewayFactory::createById($gatewayId);
     $result = $gateway->handleWebhook($payload);
     echo 'handleWebhook: ' . ($result->valid ? 'valid' : 'invalid') . ', status=' . $result->gatewayStatus . "\n";
 } catch (Throwable $e) {

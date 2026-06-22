@@ -75,7 +75,7 @@ class PaymentRepository
     }
 
     /**
-     * Поиск платежа для webhook: OrderId из T-Bank, затем PaymentId шлюза.
+     * Поиск платежа для webhook: orderId шлюза, затем paymentId шлюза.
      */
     public static function findForWebhook(string $orderId, string $gatewayPaymentId, ?int $gatewayId = null): ?array
     {
@@ -106,6 +106,38 @@ class PaymentRepository
     }
 
     /**
+     * Pending-платёж с тем же набором покрываемых периодов.
+     *
+     * @param string[] $coveredPeriods
+     */
+    public static function findPendingForCoveredPeriods(int $userId, array $coveredPeriods): ?array
+    {
+        if ($userId <= 0 || $coveredPeriods === []) {
+            return null;
+        }
+
+        $result = PaymentTable::getList([
+            'filter' => [
+                '=USER_ID' => $userId,
+                '=STATUS' => PaymentStatus::PENDING,
+            ],
+            'order' => ['ID' => 'DESC'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (self::coveredPeriodsEqual(PaymentCoveredPeriods::fromPaymentRow($row), $coveredPeriods)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Последний неуспешный платёж за период (без повторного Init при каждом заходе на сайт).
      */
     public static function findFailedForPeriod(int $userId, string $billingPeriod): ?array
@@ -121,6 +153,36 @@ class PaymentRepository
         ])->fetch();
 
         return is_array($row) ? $row : null;
+    }
+
+    /**
+     * @param string[] $coveredPeriods
+     */
+    public static function findFailedForCoveredPeriods(int $userId, array $coveredPeriods): ?array
+    {
+        if ($userId <= 0 || $coveredPeriods === []) {
+            return null;
+        }
+
+        $result = PaymentTable::getList([
+            'filter' => [
+                '=USER_ID' => $userId,
+                '=STATUS' => PaymentStatus::FAILED,
+            ],
+            'order' => ['ID' => 'DESC'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (self::coveredPeriodsEqual(PaymentCoveredPeriods::fromPaymentRow($row), $coveredPeriods)) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     public static function hasAnyPayment(int $userId): bool
@@ -160,7 +222,11 @@ class PaymentRepository
             'limit' => 1,
         ])->fetch();
 
-        return (bool)$row;
+        if ($row) {
+            return true;
+        }
+
+        return self::hasPaidInCoveredPeriods($userId, $billingPeriod, $excludePaymentId, $accessGrantingOnly);
     }
 
     /**
@@ -188,5 +254,51 @@ class PaymentRepository
         ])->fetch();
 
         return is_array($row) ? $row : null;
+    }
+
+    /**
+     * @param string[] $periods
+     * @param string[] $expected
+     */
+    public static function coveredPeriodsEqual(array $periods, array $expected): bool
+    {
+        return PaymentCoveredPeriods::encode($periods) === PaymentCoveredPeriods::encode($expected);
+    }
+
+    protected static function hasPaidInCoveredPeriods(
+        int $userId,
+        string $billingPeriod,
+        ?int $excludePaymentId = null,
+        bool $accessGrantingOnly = false
+    ): bool {
+        $statuses = $accessGrantingOnly
+            ? [PaymentStatus::PAID]
+            : [PaymentStatus::PAID, PaymentStatus::AUTHORIZED];
+
+        $filter = [
+            '=USER_ID' => $userId,
+            '@STATUS' => $statuses,
+        ];
+
+        if ($excludePaymentId !== null && $excludePaymentId > 0) {
+            $filter['!=ID'] = $excludePaymentId;
+        }
+
+        $result = PaymentTable::getList([
+            'filter' => $filter,
+            'select' => ['ID', 'BILLING_PERIOD', 'COVERED_PERIODS'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (PaymentCoveredPeriods::paymentCoversPeriod($row, $billingPeriod)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

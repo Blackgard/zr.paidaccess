@@ -201,7 +201,7 @@ class GatewayRepository
                 self::syncTestGatewayOptions($fields['OPTIONS'], $provider, $isTest),
                 $provider
             );
-        } elseif ($isTest && $provider === 'tinkoff') {
+        } elseif ($isTest) {
             $currentOptions = self::getOptionsForGateway($existing);
             $data['OPTIONS'] = self::encodeOptions(
                 self::syncTestGatewayOptions($currentOptions, $provider, true),
@@ -333,8 +333,9 @@ class GatewayRepository
             $options = self::decodeOptions($options);
         }
 
-        if ($isTest && $provider === 'tinkoff') {
-            $options['test_mode'] = 'Y';
+        $providerMeta = GatewayProviderRegistry::getProvider($provider);
+        if ($providerMeta) {
+            return $providerMeta->normalizeOptions($options, $isTest);
         }
 
         return $options;

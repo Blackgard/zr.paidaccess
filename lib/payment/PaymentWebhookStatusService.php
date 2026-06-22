@@ -5,7 +5,6 @@ namespace Zr\PaidAccess\Payment;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffStatusMapper;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\Subscription\SubscriptionService;
@@ -27,7 +26,7 @@ class PaymentWebhookStatusService
         $internalStatus = (string)$result->internalStatus;
         $currentStatus = (string)$modulePayment['STATUS'];
 
-        if (TinkoffStatusMapper::isIntermediateStatus($gatewayStatus)) {
+        if ($internalStatus === PaymentStatus::AUTHORIZED) {
             self::acknowledgeIntermediate($modulePayment, $result);
 
             return;
