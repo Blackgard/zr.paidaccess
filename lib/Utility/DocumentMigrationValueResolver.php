@@ -64,9 +64,9 @@ class DocumentMigrationValueResolver
         return $property;
     }
 
-  /**
-     * @param mixed $value
-     */
+    /**
+       * @param mixed $value
+       */
     public static function resolveFileId($value): int
     {
         if (is_array($value)) {

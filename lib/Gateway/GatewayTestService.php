@@ -7,6 +7,7 @@ use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\PaymentRepository;
+use Zr\PaidAccess\PublicUi\PaymentWidgetPresenter;
 
 /**
  * Тестовая оплата шлюза для проверки подключения эквайринга (T-Bank onboarding).
@@ -73,9 +74,14 @@ class GatewayTestService
         ]);
 
         $request->paymentUrl = $result->paymentUrl;
+        $gatewaySiteId = trim((string)($gateway['SITE_ID'] ?? ''));
+        $request->paymentWidgetMode = PaidAccessCore::getPaymentWidgetMode(
+            $gatewaySiteId !== '' ? $gatewaySiteId : null
+        );
         $formResult = $gatewayInstance->fetchPaymentForm($result->gatewayPaymentId, $request);
+        $qrHtml = PaymentWidgetPresenter::renderFromResult($formResult);
 
-        if (!$formResult->success || $formResult->html === '') {
+        if (!$formResult->success || $qrHtml === '') {
             throw new \RuntimeException($formResult->errorMessage ?: 'Не удалось получить QR для тестового платежа');
         }
 
@@ -86,7 +92,7 @@ class GatewayTestService
         return [
             'paymentId' => $modulePaymentId,
             'orderId' => $orderId,
-            'qrHtml' => $formResult->html,
+            'qrHtml' => $qrHtml,
             'amount' => $amount,
         ];
     }

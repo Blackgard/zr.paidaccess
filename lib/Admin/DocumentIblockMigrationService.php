@@ -2,7 +2,6 @@
 
 namespace Zr\PaidAccess\Admin;
 
-use Bitrix\Main\Config\Option;
 use Bitrix\Main\Type\DateTime;
 use Zr\PaidAccess\Document\DocumentVersionService;
 use Zr\PaidAccess\Document\RequiredDocumentRepository;
@@ -15,8 +14,6 @@ use Zr\PaidAccess\Utility\IblockIntrospectionService;
 
 class DocumentIblockMigrationService
 {
-    private const OPTION_PREFIX = 'document_iblock_migration_';
-
     /**
      * @param array<string, string> $mapping
      * @return array{items: array<int, array<string, mixed>>, total: int, errors: string[]}
@@ -79,7 +76,6 @@ class DocumentIblockMigrationService
 
         $siteId = PaidAccessCore::normalizeSiteId($siteId);
         $mergedMapping = DocumentMigrationMapping::mergeWithDefaults($mapping);
-        self::saveMapping($siteId, $iblockId, $mergedMapping);
 
         $result = [
             'created_documents' => 0,
@@ -104,40 +100,6 @@ class DocumentIblockMigrationService
         }
 
         return $result;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public static function loadSavedMapping(?string $siteId): array
-    {
-        $siteId = PaidAccessCore::normalizeSiteId($siteId);
-        $json = (string)Option::get(PaidAccessCore::MODULE_ID, self::OPTION_PREFIX . $siteId, '');
-
-        if ($json === '') {
-            return DocumentMigrationTargetFields::getDefaultSources();
-        }
-
-        $decoded = json_decode($json, true);
-
-        return is_array($decoded) ? DocumentMigrationMapping::mergeWithDefaults($decoded) : DocumentMigrationTargetFields::getDefaultSources();
-    }
-
-    public static function loadSavedIblockId(?string $siteId): int
-    {
-        $siteId = PaidAccessCore::normalizeSiteId($siteId);
-
-        return (int)Option::get(PaidAccessCore::MODULE_ID, self::OPTION_PREFIX . 'iblock_' . $siteId, '0');
-    }
-
-    /**
-     * @param array<string, string> $mapping
-     */
-    public static function saveMapping(?string $siteId, int $iblockId, array $mapping): void
-    {
-        $siteId = PaidAccessCore::normalizeSiteId($siteId);
-        Option::set(PaidAccessCore::MODULE_ID, self::OPTION_PREFIX . $siteId, json_encode($mapping, JSON_UNESCAPED_UNICODE));
-        Option::set(PaidAccessCore::MODULE_ID, self::OPTION_PREFIX . 'iblock_' . $siteId, (string)$iblockId);
     }
 
     /**

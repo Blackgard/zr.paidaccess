@@ -9,6 +9,8 @@ use Zr\PaidAccess\Fund\FundMovementService;
 use Zr\PaidAccess\Gateway\GatewayTestService;
 use Zr\PaidAccess\Notification\ReceiptNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
+use Zr\PaidAccess\Payment\PaymentCoveredPeriods;
+use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Subscription\SubscriptionService;
 
 /**
@@ -54,9 +56,9 @@ class PaymentCompletionService
         }
 
         $userId = (int)$payment['USER_ID'];
-        $billingPeriod = (string)$payment['BILLING_PERIOD'];
+        $coveredPeriods = PaymentCoveredPeriods::fromPaymentRow($payment);
         if (PaidAccessCore::isBillingEnforceOnePayment()
-            && PaymentRepository::hasPaidInPeriod($userId, $billingPeriod, $modulePaymentId)
+            && self::hasDuplicatePaidCoverage($userId, $coveredPeriods, $modulePaymentId)
         ) {
             PaymentRepository::update($modulePaymentId, [
                 'STATUS' => PaymentStatus::PAID,
@@ -108,6 +110,27 @@ class PaymentCompletionService
         FundMovementService::tryRecordPaymentIncome($modulePaymentId);
 
         return true;
+    }
+
+    /**
+     * @param string[] $coveredPeriods
+     */
+    protected static function hasDuplicatePaidCoverage(
+        int $userId,
+        array $coveredPeriods,
+        int $excludePaymentId
+    ): bool {
+        if ($coveredPeriods === []) {
+            return false;
+        }
+
+        foreach ($coveredPeriods as $period) {
+            if (PaymentRepository::hasPaidInPeriod($userId, $period, $excludePaymentId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

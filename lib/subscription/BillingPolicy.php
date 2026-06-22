@@ -168,31 +168,8 @@ class BillingPolicy
     }
 
     /**
-     * Окончание доступа после успешной оплаты (PERIOD_END подписки).
+     * Человекочитаемая подпись расчётного периода.
      */
-    public static function calcSubscriptionPeriodEnd(DateTime $paidAt, int $userId, ?string $siteId = null): DateTime
-    {
-        $siteId = PaidAccessCore::normalizeSiteId($siteId);
-        $paid = self::toImmutable($paidAt);
-        $anchorDay = self::resolveBillingDay($userId, $siteId);
-
-        if (PaidAccessCore::isPersonalBillingPeriodMode($siteId)) {
-            $periodStart = self::getCurrentAnchorPeriodStart($userId, $paid, $siteId);
-            $nextStart = self::addMonthsKeepingAnchor($periodStart, 1, $anchorDay, $siteId);
-            $end = $nextStart->modify('-1 second');
-        } else {
-            $nextAnchor = self::findNextBillingAnchor($paid, $anchorDay, $siteId);
-            $end = $nextAnchor->setTime(23, 59, 59);
-        }
-
-        $graceDays = PaidAccessCore::getBillingGraceDays($siteId);
-        if ($graceDays > 0) {
-            $end = $end->modify('+' . $graceDays . ' days');
-        }
-
-        return DateTime::createFromTimestamp($end->getTimestamp());
-    }
-
     public static function formatPeriodLabel(string $billingPeriod, ?string $siteId = null): string
     {
         $siteId = PaidAccessCore::normalizeSiteId($siteId);
@@ -225,6 +202,132 @@ class BillingPolicy
         }
 
         return $billingPeriod;
+    }
+
+    /**
+     * Первый расчётный период обязательства пользователя (обычно период регистрации).
+     */
+    public static function getFirstObligationPeriod(int $userId, ?string $siteId = null): string
+    {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        if ($userId <= 0) {
+            return self::getCurrentBillingPeriod(0, $siteId);
+        }
+
+        $user = \CUser::GetByID($userId)->Fetch();
+        $registerDate = (string)($user['DATE_REGISTER'] ?? '');
+        if ($registerDate === '') {
+            return self::getCurrentBillingPeriod($userId, $siteId);
+        }
+
+        $registeredAt = \DateTimeImmutable::createFromFormat('d.m.Y H:i:s', $registerDate);
+        if ($registeredAt === false) {
+            $registeredAt = new \DateTimeImmutable($registerDate);
+        }
+
+        return self::resolveBillingPeriodForDate($userId, $registeredAt, $siteId);
+    }
+
+    /**
+     * Предыдущий расчётный период относительно ключа периода.
+     */
+    public static function getPreviousBillingPeriod(
+        string $billingPeriod,
+        int $userId = 0,
+        ?string $siteId = null
+    ): string {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        $billingPeriod = trim($billingPeriod);
+
+        if (PaidAccessCore::isPersonalBillingPeriodMode($siteId)) {
+            $start = \DateTimeImmutable::createFromFormat('Y-m-d', $billingPeriod);
+            if ($start === false) {
+                return $billingPeriod;
+            }
+
+            $anchorDay = self::resolveBillingDay($userId, $siteId);
+
+            return self::addMonthsKeepingAnchor($start, -1, $anchorDay, $siteId)->format('Y-m-d');
+        }
+
+        if (preg_match('/^(\d{4})-(\d{2})$/', $billingPeriod, $matches)) {
+            $date = new \DateTimeImmutable(sprintf('%s-%s-01', $matches[1], $matches[2]));
+
+            return $date->modify('-1 month')->format('Y-m');
+        }
+
+        return $billingPeriod;
+    }
+
+    public static function compareBillingPeriods(string $left, string $right): int
+    {
+        return strcmp(trim($left), trim($right));
+    }
+
+    /**
+     * Окончание доступа после успешной оплаты (PERIOD_END подписки).
+     */
+    public static function calcSubscriptionPeriodEnd(DateTime $paidAt, int $userId, ?string $siteId = null): DateTime
+    {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        $billingPeriod = self::getCurrentBillingPeriod($userId, $siteId);
+
+        return self::calcSubscriptionPeriodEndForBillingPeriod($billingPeriod, $userId, $siteId);
+    }
+
+    /**
+     * Окончание доступа по последнему покрытому расчётному периоду.
+     */
+    public static function calcSubscriptionPeriodEndForBillingPeriod(
+        string $billingPeriod,
+        int $userId,
+        ?string $siteId = null
+    ): DateTime {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        $anchorDay = self::resolveBillingDay($userId, $siteId);
+
+        if (PaidAccessCore::isPersonalBillingPeriodMode($siteId)) {
+            $start = \DateTimeImmutable::createFromFormat('Y-m-d', $billingPeriod);
+            if ($start === false) {
+                $start = new \DateTimeImmutable('now');
+            }
+
+            $nextStart = self::addMonthsKeepingAnchor($start, 1, $anchorDay, $siteId);
+            $end = $nextStart->modify('-1 second');
+        } elseif (preg_match('/^(\d{4})-(\d{2})$/', $billingPeriod, $matches)) {
+            $year = (int)$matches[1];
+            $month = (int)$matches[2];
+            $day = self::clampDayToMonth($anchorDay, $year, $month, $siteId);
+            $periodAnchor = new \DateTimeImmutable(sprintf('%04d-%02d-%02d', $year, $month, $day));
+            $nextAnchor = self::addMonthsKeepingAnchor($periodAnchor, 1, $anchorDay, $siteId);
+            $end = $nextAnchor->modify('-1 second')->setTime(23, 59, 59);
+        } else {
+            $end = new \DateTimeImmutable();
+        }
+
+        $graceDays = PaidAccessCore::getBillingGraceDays($siteId);
+        if ($graceDays > 0) {
+            $end = $end->modify('+' . $graceDays . ' days');
+        }
+
+        return DateTime::createFromTimestamp($end->getTimestamp());
+    }
+
+    /**
+     * @param string[] $coveredPeriods
+     */
+    public static function calcSubscriptionPeriodEndForCoveredPeriods(
+        array $coveredPeriods,
+        int $userId,
+        ?string $siteId = null
+    ): DateTime {
+        if ($coveredPeriods === []) {
+            return self::calcSubscriptionPeriodEnd(new DateTime(), $userId, $siteId);
+        }
+
+        $lastPeriod = $coveredPeriods[count($coveredPeriods) - 1];
+
+        return self::calcSubscriptionPeriodEndForBillingPeriod($lastPeriod, $userId, $siteId);
     }
 
     public static function getBillingPeriodFormatHint(?string $siteId = null): string

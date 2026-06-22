@@ -28,4 +28,15 @@ final class InitPaymentRequestTest extends TestCase
             'zero' => [0.0, 0],
         ];
     }
+
+    public function testPaymentWidgetModeHelpers(): void
+    {
+        $request = new InitPaymentRequest('ORDER-1', 100.0, 'RUB', 'Test', 1);
+        $request->paymentWidgetMode = 'payment_button';
+
+        $this->assertTrue($request->isPaymentButtonWidgetMode());
+
+        $request->paymentWidgetMode = 'qr_sbp';
+        $this->assertFalse($request->isPaymentButtonWidgetMode());
+    }
 }

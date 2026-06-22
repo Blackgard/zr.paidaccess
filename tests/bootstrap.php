@@ -6,6 +6,7 @@ $moduleRoot = dirname(__DIR__);
 
 require_once $moduleRoot . '/vendor/autoload.php';
 require_once $moduleRoot . '/tests/Stubs/BitrixStubs.php';
+require_once $moduleRoot . '/tests/Stubs/CUserStub.php';
 
 if (!function_exists('htmlspecialcharsbx')) {
     function htmlspecialcharsbx($string, $flags = ENT_COMPAT)

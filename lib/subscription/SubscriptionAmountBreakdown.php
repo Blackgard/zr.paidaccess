@@ -91,4 +91,26 @@ final class SubscriptionAmountBreakdown
 
         return new self($amount, 0.0, 0.0);
     }
+
+    public function multiply(int $factor): self
+    {
+        $factor = max(1, $factor);
+
+        return new self(
+            $this->fundAmount * $factor,
+            $this->taxAmount * $factor,
+            $this->maintenanceAmount * $factor
+        );
+    }
+
+    public function divide(int $divisor): self
+    {
+        $divisor = max(1, $divisor);
+
+        return new self(
+            $this->fundAmount / $divisor,
+            $this->taxAmount / $divisor,
+            $this->maintenanceAmount / $divisor
+        );
+    }
 }

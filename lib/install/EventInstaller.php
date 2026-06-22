@@ -2,42 +2,65 @@
 
 namespace Zr\PaidAccess\Install;
 
-use Bitrix\Main\Config\Option;
 use Bitrix\Main\EventManager;
+use Zr\PaidAccess\Access\AccessBlockHandler;
 use Zr\PaidAccess\Access\RegistrationPaymentHandler;
-use Zr\PaidAccess\PaidAccessCore;
 
 /**
- * Регистрация обработчиков F1/F7 на уже установленных копиях модуля (без переустановки).
+ * Единая точка регистрации событий модуля.
  */
 class EventInstaller
 {
-    private const OPTION_FLAG = 'EVENT_HANDLERS_F1_F7';
-
     public static function ensureEvents(): void
     {
-        if (Option::get(PaidAccessCore::MODULE_ID, self::OPTION_FLAG, 'N') === 'Y') {
-            return;
-        }
-
         $eventManager = EventManager::getInstance();
-        $moduleId = PaidAccessCore::MODULE_ID;
 
-        $eventManager->registerEventHandler(
-            'main',
-            'OnAfterUserRegister',
-            $moduleId,
-            RegistrationPaymentHandler::class,
-            'onAfterUserRegister'
-        );
-        $eventManager->registerEventHandler(
-            'main',
-            'OnAfterUserLogin',
-            $moduleId,
-            RegistrationPaymentHandler::class,
-            'onAfterUserLogin'
-        );
+        foreach (self::getHandlers() as $handler) {
+            [$fromModuleId, $event, $moduleId, $class, $method] = $handler;
 
-        Option::set($moduleId, self::OPTION_FLAG, 'Y');
+            $eventManager->unRegisterEventHandler(
+                $fromModuleId,
+                $event,
+                $moduleId,
+                $class,
+                $method
+            );
+            $eventManager->registerEventHandler(
+                $fromModuleId,
+                $event,
+                $moduleId,
+                $class,
+                $method
+            );
+        }
+    }
+
+    public static function uninstallEvents(): void
+    {
+        $eventManager = EventManager::getInstance();
+
+        foreach (self::getHandlers() as $handler) {
+            [$fromModuleId, $event, $moduleId, $class, $method] = $handler;
+
+            $eventManager->unRegisterEventHandler(
+                $fromModuleId,
+                $event,
+                $moduleId,
+                $class,
+                $method
+            );
+        }
+    }
+
+    /**
+     * @return array<int, array{string, string, string, class-string, string}>
+     */
+    private static function getHandlers(): array
+    {
+        return [
+            ['main', 'OnBeforeProlog', 'zr.paidaccess', AccessBlockHandler::class, 'onBeforeProlog'],
+            ['main', 'OnAfterUserRegister', 'zr.paidaccess', RegistrationPaymentHandler::class, 'onAfterUserRegister'],
+            ['main', 'OnAfterUserLogin', 'zr.paidaccess', RegistrationPaymentHandler::class, 'onAfterUserLogin'],
+        ];
     }
 }

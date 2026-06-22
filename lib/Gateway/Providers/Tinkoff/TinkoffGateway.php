@@ -2,24 +2,20 @@
 
 namespace Zr\PaidAccess\Gateway\Providers\Tinkoff;
 
+use Zr\PaidAccess\Gateway\Contract\DuplicateOrderRecoverableGatewayInterface;
+use Zr\PaidAccess\Gateway\Contract\GatewayCancellableInterface;
+use Zr\PaidAccess\Gateway\Contract\GatewayWebhookDebugVerifierInterface;
 use Zr\PaidAccess\Gateway\Contract\PaymentGatewayInterface;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
 use Zr\PaidAccess\Gateway\GatewayRepository;
-use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Tools\Logger;
 
-class TinkoffGateway implements PaymentGatewayInterface
+class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverableGatewayInterface, GatewayCancellableInterface, GatewayWebhookDebugVerifierInterface
 {
     public const CODE = 'tinkoff';
-
-    private const PAYMENT_BUTTON_CSS = '/local/modules/zr.paidaccess/install/assets/payment-button.css';
-    private const TBANK_PAY_LOGO = '/local/modules/zr.paidaccess/install/assets/tbank-pay-logo.svg';
-
-    /** @var bool */
-    private static $paymentButtonCssEmitted = false;
 
     /** @var TinkoffApiClient */
     private $client;
@@ -63,11 +59,27 @@ class TinkoffGateway implements PaymentGatewayInterface
         return self::CODE;
     }
 
+    public function getWebhookDebugInfo(array $payload): array
+    {
+        return [
+            'configuredTerminalKey' => $this->config->getTerminalKey(),
+            'payloadTerminalKey' => trim((string)($payload['TerminalKey'] ?? '')),
+            'tokenFields' => $this->client->getNotificationTokenFieldNames($payload),
+            'expectedToken' => $this->client->buildNotificationToken($payload),
+            'receivedToken' => (string)($payload['Token'] ?? ''),
+        ];
+    }
+
     public function recoverDuplicateOrder(InitPaymentRequest $request): InitPaymentResult
     {
         $this->bindClientLogContext($request);
 
         return TinkoffDuplicateOrderRecovery::recover($this->client, $request);
+    }
+
+    public function isDuplicateOrderError(InitPaymentResult $result): bool
+    {
+        return TinkoffInitError::isDuplicateOrderIdError($result);
     }
 
     public function initPayment(InitPaymentRequest $request): InitPaymentResult
@@ -96,7 +108,7 @@ class TinkoffGateway implements PaymentGatewayInterface
             return InitPaymentResult::fail('Пустой PaymentId');
         }
 
-        $widgetMode = PaidAccessCore::getPaymentWidgetMode();
+        $widgetMode = $this->resolveWidgetMode($request);
         Logger::info('fetchPaymentForm start', [
             'gatewayId' => $this->gatewayId,
             'gatewayPaymentId' => $gatewayPaymentId,
@@ -106,11 +118,16 @@ class TinkoffGateway implements PaymentGatewayInterface
             'testMode' => $this->config->isTestMode(),
         ], self::CODE);
 
-        if (PaidAccessCore::isPaymentWidgetButtonMode()) {
+        if ($request->isPaymentButtonWidgetMode()) {
             return $this->fetchPaymentButtonForm($gatewayPaymentId, $request);
         }
 
         return $this->fetchQrForm($gatewayPaymentId, $request);
+    }
+
+    private function resolveWidgetMode(InitPaymentRequest $request): string
+    {
+        return $request->paymentWidgetMode !== '' ? $request->paymentWidgetMode : 'qr_sbp';
     }
 
     protected function fetchPaymentButtonForm(string $gatewayPaymentId, InitPaymentRequest $request): InitPaymentResult
@@ -174,15 +191,18 @@ class TinkoffGateway implements PaymentGatewayInterface
 
     private function buildButtonResult(string $gatewayPaymentId, string $paymentUrl, string $rawResponse = ''): InitPaymentResult
     {
-        return new InitPaymentResult(
+        $result = new InitPaymentResult(
             true,
             $gatewayPaymentId,
             $paymentUrl,
             '',
-            self::buildRedirectHtml($paymentUrl, $this->config->isRedirectEnabled()),
+            '',
             '',
             $rawResponse !== '' ? $rawResponse : json_encode(['PaymentURL' => $paymentUrl], JSON_UNESCAPED_UNICODE)
         );
+        $result->autoRedirectPaymentButton = $this->config->isRedirectEnabled();
+
+        return $result;
     }
 
     protected function fetchQrForm(string $gatewayPaymentId, InitPaymentRequest $request): InitPaymentResult
@@ -207,7 +227,7 @@ class TinkoffGateway implements PaymentGatewayInterface
                 $gatewayPaymentId,
                 '',
                 $payload,
-                self::buildQrHtml($payload),
+                '',
                 '',
                 $qrRaw
             );
@@ -237,7 +257,7 @@ class TinkoffGateway implements PaymentGatewayInterface
                 $init->gatewayPaymentId,
                 $init->paymentUrl,
                 '',
-                self::buildRedirectHtml($init->paymentUrl, false),
+                '',
                 '',
                 $init->rawResponse
             );
@@ -306,47 +326,6 @@ class TinkoffGateway implements PaymentGatewayInterface
         $internalStatus = TinkoffStatusMapper::toInternal($status);
 
         return new WebhookHandleResult(true, $paid, $orderId, $paymentId, $status, '', $internalStatus);
-    }
-
-    public static function buildQrHtml($payload)
-    {
-        $src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' . rawurlencode($payload);
-
-        return '<div class="zr-paidaccess-qr">'
-            . '<img src="' . htmlspecialcharsbx($src) . '" alt="QR СБП" width="280" height="280">'
-            . '<p><small>Отсканируйте QR в приложении банка (СБП)</small></p>'
-            . '</div>';
-    }
-
-    public static function buildRedirectHtml($url, $autoRedirect = false)
-    {
-        $safeUrl = htmlspecialcharsbx($url);
-        $logoUrl = htmlspecialcharsbx(self::TBANK_PAY_LOGO);
-        $html = self::emitPaymentButtonStyles()
-            . '<div class="zr-paidaccess-pay-action">'
-            . '<a class="zr-paidaccess-pay-btn zr-paidaccess-pay-btn--tbank" href="' . $safeUrl . '">'
-            . '<img class="zr-paidaccess-pay-btn__logo" src="' . $logoUrl . '" alt="" width="28" height="28" loading="lazy">'
-            . '<span class="zr-paidaccess-pay-btn__text">Перейти к оплате</span>'
-            . '</a>'
-            . '</div>';
-
-        if ($autoRedirect) {
-            $html .= '<script>window.location.replace(' . json_encode($url, JSON_UNESCAPED_UNICODE) . ');</script>';
-            $html .= '<p><small>Идёт перенаправление на платёжную форму банка…</small></p>';
-        }
-
-        return $html;
-    }
-
-    private static function emitPaymentButtonStyles(): string
-    {
-        if (self::$paymentButtonCssEmitted) {
-            return '';
-        }
-
-        self::$paymentButtonCssEmitted = true;
-
-        return '<link rel="stylesheet" href="' . htmlspecialcharsbx(self::PAYMENT_BUTTON_CSS) . '">';
     }
 
     protected function bindClientLogContext(InitPaymentRequest $request): void

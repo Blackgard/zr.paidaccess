@@ -31,6 +31,14 @@ class InitPaymentRequest
     /** @var string Сохранённый PaymentURL (если Init уже выполнялся) */
     public $paymentUrl = '';
 
+    /**
+     * Режим UI оплаты: qr_sbp | payment_button.
+     * Задаёт вызывающий слой (Payment), gateway не читает PaidAccessCore.
+     *
+     * @var string
+     */
+    public $paymentWidgetMode = '';
+
     public function __construct(
         $orderId,
         $amount,
@@ -52,5 +60,10 @@ class InitPaymentRequest
     public function getAmountKopecks()
     {
         return (int)round($this->amount * 100);
+    }
+
+    public function isPaymentButtonWidgetMode(): bool
+    {
+        return $this->paymentWidgetMode === 'payment_button';
     }
 }

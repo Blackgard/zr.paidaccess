@@ -52,6 +52,23 @@ class DocumentConsentService
     }
 
     /**
+     * Нужно ли открыть документ перед включением чекбокса (зависит от опции модуля).
+     *
+     * @param array<string, mixed> $document элемент из getPendingDocuments / buildPendingItem
+     */
+    public static function mustOpenDocumentBeforeConsent(array $document, ?string $siteId = null): bool
+    {
+        if (!PaidAccessCore::isDocumentConsentRequireOpen($siteId)) {
+            return false;
+        }
+
+        $hasFile = (string)($document['FILE_URL'] ?? '') !== '';
+        $hasBody = trim((string)($document['BODY_HTML'] ?? '')) !== '';
+
+        return $hasFile || $hasBody;
+    }
+
+    /**
      * @param int[] $versionIds
      */
     public static function acceptDocuments(int $userId, array $versionIds, ?string $siteId = null): void

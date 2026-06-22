@@ -96,6 +96,11 @@ final class ModuleOptionsStructure
                     'DEFAULT' => PaidAccessCore::DEFAULT_BILLING_GRACE_DAYS,
                     'WIDTH' => 5,
                 ],
+                'BILLING_COLLECT_ARREARS' => [
+                    'TITLE' => 'Взыскивать пропущенные периоды одним платежом',
+                    'TYPE' => 'checkbox',
+                    'DEFAULT' => PaidAccessCore::DEFAULT_BILLING_COLLECT_ARREARS,
+                ],
                 'NOTE_BILLING_PERIOD' => [
                     'TYPE' => 'note',
                     'TEXT' => 'Календарный месяц: период хранится как YYYY-MM. Персональный период: от дня оплаты до следующего такого дня, ключ YYYY-MM-DD (дата начала). '
@@ -138,6 +143,11 @@ final class ModuleOptionsStructure
                     'TITLE' => 'Проверять согласие с обязательными документами',
                     'TYPE' => 'checkbox',
                     'DEFAULT' => PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_ENABLED,
+                ],
+                'DOCUMENT_CONSENT_REQUIRE_OPEN' => [
+                    'TITLE' => 'Требовать открытие документа перед согласием',
+                    'TYPE' => 'checkbox',
+                    'DEFAULT' => PaidAccessCore::DEFAULT_DOCUMENT_CONSENT_REQUIRE_OPEN,
                 ],
                 'DOCUMENT_CONSENT_BLOCK_TEMPLATE' => [
                     'TITLE' => 'Шаблон страницы согласия с документами',

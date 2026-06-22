@@ -47,7 +47,6 @@ class AccessControl
 
     /**
      * Активная оплаченная подписка.
-     * TODO: реализовать по ORM/платежам модуля.
      */
     public static function hasPaidSubscription(int $userId): bool
     {

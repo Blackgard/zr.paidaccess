@@ -4,16 +4,17 @@ namespace Zr\PaidAccess\Payment;
 
 use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Enum\PaymentStatus;
+use Zr\PaidAccess\Gateway\Contract\DuplicateOrderRecoverableGatewayInterface;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\GatewayFactory;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffGateway;
-use Zr\PaidAccess\Gateway\Providers\Tinkoff\TinkoffInitError;
 use Zr\PaidAccess\Log\ModuleEventLogService;
 use Zr\PaidAccess\Notification\SubscriptionNotificationService;
 use Zr\PaidAccess\PaidAccessCore;
+use Zr\PaidAccess\PublicUi\PaymentWidgetPresenter;
 use Zr\PaidAccess\Subscription\BillingPolicy;
 use Zr\PaidAccess\Subscription\SubscriptionAmountBreakdown;
+use Zr\PaidAccess\Subscription\SubscriptionPaymentQuote;
 use Zr\PaidAccess\Tools\Logger;
 
 class SubscriptionPaymentService
@@ -29,7 +30,9 @@ class SubscriptionPaymentService
     public static function preparePayment(int $userId, ?string $siteId = null): int
     {
         $siteId = PaidAccessCore::normalizeSiteId($siteId);
-        $billingPeriod = self::getCurrentBillingPeriod($userId, $siteId);
+        $quote = SubscriptionPaymentQuote::forUser($userId, $siteId);
+        $coveredPeriods = $quote->coveredPeriods;
+        $billingPeriod = $coveredPeriods !== [] ? $coveredPeriods[count($coveredPeriods) - 1] : '';
 
         BillingPolicy::assertCanInitPayment($userId, $siteId);
 
@@ -38,20 +41,23 @@ class SubscriptionPaymentService
             throw new \RuntimeException('Платёжный шлюз не настроен. Создайте шлюз в админке.');
         }
 
-        $existing = PaymentRepository::findPendingForPeriod($userId, $billingPeriod);
+        $existing = PaymentRepository::findPendingForCoveredPeriods($userId, $coveredPeriods);
         if ($existing) {
-            self::ensureGatewayInit((int)$existing['ID'], $existing, $siteId);
+            $existingId = (int)$existing['ID'];
+            self::syncPendingPayment($existingId, $existing, $quote, $siteId);
+            $existing = PaymentRepository::getById($existingId) ?? $existing;
+            self::ensureGatewayInit($existingId, $existing, $siteId);
 
-            return (int)$existing['ID'];
+            return $existingId;
         }
 
-        $failed = PaymentRepository::findFailedForPeriod($userId, $billingPeriod);
+        $failed = PaymentRepository::findFailedForCoveredPeriods($userId, $coveredPeriods);
         if ($failed) {
             $failedId = (int)$failed['ID'];
             ModuleEventLogService::error(
                 'payment_period_init_blocked',
                 'Платёж за период уже завершился ошибкой; повторный Init не выполняется',
-                ['billingPeriod' => $billingPeriod],
+                ['billingPeriod' => $billingPeriod, 'coveredPeriods' => $coveredPeriods],
                 $failedId,
                 $userId,
                 $siteId
@@ -61,18 +67,17 @@ class SubscriptionPaymentService
             );
         }
 
-        $breakdown = SubscriptionAmountBreakdown::fromSite($siteId);
-
         $modulePaymentId = PaymentRepository::create(array_merge([
             'USER_ID' => $userId,
             'CURRENCY' => 'RUB',
             'ORDER_ID' => 'PA-TMP-' . $userId . '-' . time(),
             'BILLING_PERIOD' => $billingPeriod,
+            'COVERED_PERIODS' => PaymentCoveredPeriods::encode($coveredPeriods),
             'GATEWAY_CODE' => (string)$gatewayRow['PROVIDER'],
             'GATEWAY_ID' => (int)$gatewayRow['ID'],
-            'DESCRIPTION' => PaidAccessCore::getPaymentDescription($siteId),
+            'DESCRIPTION' => self::buildPaymentDescription($quote, $siteId),
             'STATUS' => PaymentStatus::PENDING,
-        ], $breakdown->toPaymentAmountFields()));
+        ], $quote->totalBreakdown->toPaymentAmountFields()));
 
         $orderAccountNumber = 'PA-' . $modulePaymentId . '-' . $billingPeriod;
 
@@ -84,6 +89,44 @@ class SubscriptionPaymentService
         self::ensureGatewayInit($modulePaymentId, $row, $siteId);
 
         return $modulePaymentId;
+    }
+
+    /**
+     * @param array<string, mixed> $payment
+     */
+    private static function syncPendingPayment(
+        int $paymentId,
+        array $payment,
+        SubscriptionPaymentQuote $quote,
+        ?string $siteId
+    ): void {
+        $coveredPeriods = $quote->coveredPeriods;
+        $billingPeriod = $coveredPeriods !== [] ? $coveredPeriods[count($coveredPeriods) - 1] : '';
+        $storedPeriods = PaymentCoveredPeriods::fromPaymentRow($payment);
+        $needsUpdate = !PaymentRepository::coveredPeriodsEqual($storedPeriods, $coveredPeriods)
+            || abs((float)($payment['AMOUNT'] ?? 0) - $quote->totalBreakdown->chargeTotal) > 0.01;
+
+        if (!$needsUpdate) {
+            return;
+        }
+
+        PaymentRepository::update($paymentId, array_merge([
+            'BILLING_PERIOD' => $billingPeriod,
+            'COVERED_PERIODS' => PaymentCoveredPeriods::encode($coveredPeriods),
+            'DESCRIPTION' => self::buildPaymentDescription($quote, $siteId),
+            'GATEWAY_PAYMENT_ID' => null,
+            'GATEWAY_PAYMENT_URL' => null,
+        ], $quote->totalBreakdown->toPaymentAmountFields()));
+    }
+
+    private static function buildPaymentDescription(SubscriptionPaymentQuote $quote, ?string $siteId): string
+    {
+        $base = PaidAccessCore::getPaymentDescription($siteId);
+        if (!$quote->isArrearsPayment) {
+            return $base;
+        }
+
+        return $base . ' (' . $quote->periodCount . ' периода)';
     }
 
     /**
@@ -116,8 +159,8 @@ class SubscriptionPaymentService
 
         try {
             $gateway = self::resolveGateway($modulePayment, $siteId);
-            $request = self::buildInitRequestWithStoredUrl($modulePayment);
             $widgetMode = PaidAccessCore::getPaymentWidgetMode($siteId);
+            $request = self::buildFetchFormRequest($modulePayment, $widgetMode);
 
             Logger::info(
                 'renderPaymentWidget',
@@ -136,7 +179,8 @@ class SubscriptionPaymentService
 
             if (
                 !$result->success
-                && TinkoffInitError::isDuplicateOrderIdError($result)
+                && $gateway instanceof DuplicateOrderRecoverableGatewayInterface
+                && $gateway->isDuplicateOrderError($result)
                 && self::handleDuplicateOrderIdError(
                     $modulePaymentId,
                     $modulePayment,
@@ -151,19 +195,22 @@ class SubscriptionPaymentService
                 if ($gatewayPaymentId !== '') {
                     $result = $gateway->fetchPaymentForm(
                         $gatewayPaymentId,
-                        self::buildInitRequestWithStoredUrl($modulePayment)
+                        self::buildFetchFormRequest($modulePayment, $widgetMode)
                     );
                 }
             }
 
-            if ($result->success && $result->html !== '') {
-                if ($result->paymentUrl !== '' && trim((string)($modulePayment['GATEWAY_PAYMENT_URL'] ?? '')) === '') {
-                    PaymentRepository::update($modulePaymentId, ['GATEWAY_PAYMENT_URL' => $result->paymentUrl]);
+            if ($result->success) {
+                $html = PaymentWidgetPresenter::renderFromResult($result);
+                if ($html !== '') {
+                    if ($result->paymentUrl !== '' && trim((string)($modulePayment['GATEWAY_PAYMENT_URL'] ?? '')) === '') {
+                        PaymentRepository::update($modulePaymentId, ['GATEWAY_PAYMENT_URL' => $result->paymentUrl]);
+                    }
+
+                    echo $html;
+
+                    return;
                 }
-
-                echo $result->html;
-
-                return;
             }
 
             $errorMessage = $result->errorMessage ?: 'Не удалось получить форму оплаты';
@@ -238,8 +285,10 @@ class SubscriptionPaymentService
 
         if (!$result->success) {
             $errorMessage = $result->errorMessage ?: 'Ошибка Init в банке';
+            $isDuplicateOrderError = $gateway instanceof DuplicateOrderRecoverableGatewayInterface
+                && $gateway->isDuplicateOrderError($result);
             if (
-                TinkoffInitError::isDuplicateOrderIdError($result)
+                $isDuplicateOrderError
                 && self::handleDuplicateOrderIdError(
                     $modulePaymentId,
                     $modulePayment,
@@ -252,7 +301,7 @@ class SubscriptionPaymentService
                 return;
             }
 
-            if (!TinkoffInitError::isDuplicateOrderIdError($result)) {
+            if (!$isDuplicateOrderError) {
                 self::markPaymentFailed(
                     $modulePaymentId,
                     $modulePayment,
@@ -287,7 +336,9 @@ class SubscriptionPaymentService
             ? $initResult->errorMessage
             : 'Заказ с таким order_id уже существует в банке';
 
-        if ($policy === PaidAccessCore::PAYMENT_DUPLICATE_ORDER_REUSE && $gateway instanceof TinkoffGateway) {
+        if ($policy === PaidAccessCore::PAYMENT_DUPLICATE_ORDER_REUSE
+            && $gateway instanceof DuplicateOrderRecoverableGatewayInterface
+        ) {
             $recovered = $gateway->recoverDuplicateOrder($request);
             if ($recovered->success && $recovered->gatewayPaymentId !== '') {
                 PaymentRepository::update($modulePaymentId, [
@@ -296,7 +347,7 @@ class SubscriptionPaymentService
                 ]);
                 ModuleEventLogService::info(
                     'payment_duplicate_order_reused',
-                    'Привязан существующий платёж T-Bank: ' . $recovered->gatewayPaymentId,
+                    'Привязан существующий платёж шлюза: ' . $recovered->gatewayPaymentId,
                     ['orderId' => (string)$modulePayment['ORDER_ID']],
                     $modulePaymentId,
                     (int)$modulePayment['USER_ID'],
@@ -308,7 +359,7 @@ class SubscriptionPaymentService
 
             ModuleEventLogService::warning(
                 'payment_duplicate_order_reuse_failed',
-                $recovered->errorMessage ?: 'Не удалось привязать платёж через CheckOrder',
+                $recovered->errorMessage ?: 'Не удалось привязать существующий платёж шлюза',
                 ['orderId' => (string)$modulePayment['ORDER_ID']],
                 $modulePaymentId,
                 (int)$modulePayment['USER_ID'],
@@ -438,6 +489,17 @@ class SubscriptionPaymentService
     {
         $request = self::buildInitRequest($modulePayment);
         $request->paymentUrl = self::resolveStoredPaymentUrl($modulePayment);
+
+        return $request;
+    }
+
+    /**
+     * @param array<string, mixed> $modulePayment
+     */
+    private static function buildFetchFormRequest(array $modulePayment, string $paymentWidgetMode): InitPaymentRequest
+    {
+        $request = self::buildInitRequestWithStoredUrl($modulePayment);
+        $request->paymentWidgetMode = $paymentWidgetMode;
 
         return $request;
     }

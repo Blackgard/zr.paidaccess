@@ -5,7 +5,7 @@ namespace Zr\PaidAccess\PublicUi;
 use Bitrix\Main\Type\DateTime;
 use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Access\AccessControl;
-use Zr\PaidAccess\Admin\SubscriberAdminService;
+use Zr\PaidAccess\Access\SubscriberAccessService;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\PaidAccessCore;
 use Zr\PaidAccess\Payment\SubscriptionPaymentService;
@@ -53,9 +53,9 @@ class MemberListService
             return [];
         }
 
-        $subscriptions = SubscriberAdminService::loadSubscriptionsByUserIds($userIds);
-        $payments = SubscriberAdminService::loadCurrentPeriodPaymentsByUserIds($userIds);
-        $lastPaidPayments = SubscriberAdminService::loadLastPaidPaymentsByUserIds($userIds);
+        $subscriptions = SubscriberAccessService::loadSubscriptionsByUserIds($userIds);
+        $payments = SubscriberAccessService::loadCurrentPeriodPaymentsByUserIds($userIds);
+        $lastPaidPayments = SubscriberAccessService::loadLastPaidPaymentsByUserIds($userIds);
         $totalsPaid = $showTotalPaid ? self::loadTotalPaidByUserIds($userIds) : [];
 
         $items = [];
@@ -63,12 +63,12 @@ class MemberListService
             $subscription = $subscriptions[$userId] ?? null;
             $payment = $payments[$userId] ?? null;
             $lastPaidPayment = $lastPaidPayments[$userId] ?? null;
-            $accessStatus = SubscriberAdminService::resolveAccessStatus($userId, $subscription, $payment);
+            $accessStatus = SubscriberAccessService::resolveAccessStatus($userId, $subscription, $payment);
             $billingPeriod = SubscriptionPaymentService::getCurrentBillingPeriod($userId, $siteId);
 
             $items[] = [
                 'USER_ID' => $userId,
-                'NAME' => SubscriberAdminService::formatUserName($user),
+                'NAME' => SubscriberAccessService::formatUserName($user),
                 'ACCESS_STATUS' => $accessStatus,
                 'ACCESS_LABEL' => AccessStatusPresenter::getPublicLabel($accessStatus),
                 'ROW_CSS_CLASS' => AccessStatusPresenter::getRowCssClass($accessStatus),
@@ -76,7 +76,7 @@ class MemberListService
                 'SORT_PRIORITY' => AccessStatusPresenter::getSortPriority($accessStatus),
                 'BILLING_PERIOD_LABEL' => BillingPolicy::formatPeriodLabel($billingPeriod, $siteId),
                 'PERIOD_END' => self::formatDisplayDate(
-                    SubscriberAdminService::resolveDisplayPeriodEnd(
+                    SubscriberAccessService::resolveDisplayPeriodEnd(
                         $userId,
                         $subscription,
                         $payment,

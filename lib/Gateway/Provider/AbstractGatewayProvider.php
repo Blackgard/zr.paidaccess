@@ -20,6 +20,11 @@ abstract class AbstractGatewayProvider implements GatewayProviderInterface
         return $defaults;
     }
 
+    public function normalizeOptions(array $options, bool $isTest): array
+    {
+        return $options;
+    }
+
     public function validateOptions(array $options)
     {
         $errors = [];

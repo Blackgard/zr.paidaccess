@@ -92,6 +92,7 @@ if (!Loader::includeModule(PaidAccessCore::MODULE_ID) || $userId <= 0) {
 $backUrl = zrDocumentConsentResolveBackUrl();
 $documentCount = count($pendingDocuments);
 $footerText = PaidAccessCore::getBlockPageFooterText($siteId);
+$requireDocumentOpen = PaidAccessCore::isDocumentConsentRequireOpen($siteId);
 
 $resolveExtClass = static function (string $ext): string {
     $ext = strtolower($ext);
@@ -269,7 +270,11 @@ $resolveExtLabel = static function (array $document): string {
     <div class="card">
         <h1>Обязательные документы</h1>
         <p class="lead">
-            Откройте каждый документ и подтвердите согласие
+            <?php if ($requireDocumentOpen): ?>
+                Откройте каждый документ и подтвердите согласие
+            <?php else: ?>
+                Подтвердите согласие с каждым документом
+            <?php endif; ?>
             <?php if ($documentCount > 0): ?>
                 (<?= $documentCount ?>).
             <?php else: ?>.
@@ -294,7 +299,7 @@ $resolveExtLabel = static function (array $document): string {
                         $bodyHtml = (string)($document['BODY_HTML'] ?? '');
                         $hasFile = $fileUrl !== '';
                         $hasBody = $bodyHtml !== '';
-                        $needsOpen = $hasFile || $hasBody;
+                        $needsOpen = DocumentConsentService::mustOpenDocumentBeforeConsent($document, $siteId);
                         $extClass = $resolveExtClass((string)($document['FILE_EXT'] ?? ''));
                         $extLabel = $resolveExtLabel($document);
                         $displayName = (string)($document['FILE_NAME'] ?? $document['TITLE']);
@@ -328,12 +333,12 @@ $resolveExtLabel = static function (array $document): string {
                                 <?php endif; ?>
                             <?php endif; ?>
 
-                            <label class="check is-locked">
+                            <label class="check<?= $needsOpen ? ' is-locked' : '' ?>">
                                 <input type="checkbox"
                                        name="version_ids[]"
                                        value="<?= (int)$document['VERSION_ID'] ?>"
                                        class="zr-consent-checkbox"
-                                       disabled>
+                                       <?= $needsOpen ? 'disabled' : '' ?>>
                                 <span>Согласен(на) с условиями</span>
                             </label>
                             <?php if ($needsOpen): ?>

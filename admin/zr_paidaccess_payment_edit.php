@@ -7,10 +7,9 @@ use Bitrix\Main\Context;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\UI\Extension;
+use Zr\PaidAccess\Admin\PaymentAdminEditService;
 use Zr\PaidAccess\Admin\PaymentAdminService;
-use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\PaidAccessCore;
-use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Subscription\BillingPolicy;
 
 $moduleId = PaidAccessCore::MODULE_ID;
@@ -34,6 +33,7 @@ Extension::load(['ui.buttons', 'ui.forms', 'ui.alerts', 'ui.notification', 'jque
 
 $id = (int)($request->get('ID') ?? 0);
 $isEditMode = $id > 0;
+$prefillUserId = (int)$request->get('USER_ID');
 
 $APPLICATION->SetTitle(
     $isEditMode
@@ -41,88 +41,62 @@ $APPLICATION->SetTitle(
         : Loc::getMessage('ZR_PAIDACCESS_PAYMENT_ADD')
 );
 
-$prefillUserId = (int)$request->get('USER_ID');
-
-$formValues = [
-    'USER_ID' => $prefillUserId > 0 ? $prefillUserId : '',
-    'BILLING_PERIOD' => PaymentAdminService::getDefaultBillingPeriod($prefillUserId),
-    'AMOUNT' => PaymentAdminService::getDefaultAmount(),
-    'CURRENCY' => 'RUB',
-    'STATUS' => PaymentStatus::PENDING,
-    'DESCRIPTION' => '',
-    'ORDER_ID' => '',
-    'GATEWAY_CODE' => PaymentAdminService::MANUAL_GATEWAY_CODE,
-    'DATE_PAID' => '',
-];
-
+$formValues = PaymentAdminEditService::buildEmptyFormValues($prefillUserId);
 $message = null;
 $bVarsFromForm = false;
 
 if ($isEditMode) {
-    $payment = PaymentRepository::getById($id);
-    if (!$payment) {
+    $loaded = PaymentAdminEditService::loadPaymentFormValues($id);
+    if ($loaded === null) {
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
         CAdminMessage::ShowMessage(Loc::getMessage('ZR_PAIDACCESS_NOT_FOUND'));
         require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_admin.php';
 
         return;
     }
-    $formValues = array_merge($formValues, $payment);
-    if (!empty($payment['DATE_PAID']) && $payment['DATE_PAID'] instanceof \Bitrix\Main\Type\DateTime) {
-        $formValues['DATE_PAID'] = $payment['DATE_PAID']->toString();
-    }
+    $formValues = $loaded;
 }
 
 if ($request->isPost() && check_bitrix_sessid()) {
     $save = $request->getPost('save');
     $apply = $request->getPost('apply');
 
-    if ($save !== null && $save !== '' || $apply !== null && $apply !== '') {
-        $postData = [
-            'USER_ID' => $request->getPost('USER_ID'),
-            'BILLING_PERIOD' => $request->getPost('BILLING_PERIOD'),
-            'AMOUNT' => $request->getPost('AMOUNT'),
-            'CURRENCY' => $request->getPost('CURRENCY'),
-            'STATUS' => $request->getPost('STATUS'),
-            'DESCRIPTION' => $request->getPost('DESCRIPTION'),
-        ];
-
+    if (PaymentAdminEditService::shouldProcessSave($save, $apply)) {
+        $postData = PaymentAdminEditService::extractPostData($request);
         $formValues = array_merge($formValues, $postData);
         $bVarsFromForm = true;
 
-        try {
-            $wasNew = !$isEditMode;
-            $id = PaymentAdminService::save($postData, $isEditMode ? $id : null);
-            $isEditMode = true;
+        $saveResult = PaymentAdminEditService::processSave(
+            $postData,
+            $isEditMode,
+            $id,
+            $save,
+            $apply,
+            $languageId,
+            $APPLICATION->GetCurPage()
+        );
 
-            $payment = PaymentRepository::getById($id);
-            if ($payment) {
-                $formValues = array_merge($formValues, $payment);
-                if (!empty($payment['DATE_PAID']) && $payment['DATE_PAID'] instanceof \Bitrix\Main\Type\DateTime) {
-                    $formValues['DATE_PAID'] = $payment['DATE_PAID']->toString();
-                }
-            }
-            $bVarsFromForm = false;
+        if ($saveResult->hasRedirect()) {
+            LocalRedirect(
+                $saveResult->redirectUrl,
+                false,
+                $saveResult->redirectHttpStatus === 301 ? '301 Moved Permanently' : '302 Found'
+            );
+        }
 
-            if ($save !== null && $save !== '') {
-                LocalRedirect('zr_paidaccess_payments.php?lang=' . $languageId);
-            }
+        $id = $saveResult->paymentId;
+        $isEditMode = $saveResult->isEditMode;
+        $formValues = $saveResult->formValues;
+        $bVarsFromForm = !$saveResult->success;
 
-            if ($wasNew) {
-                LocalRedirect(
-                    $APPLICATION->GetCurPage() . '?ID=' . $id . '&lang=' . $languageId,
-                    false,
-                    '301 Moved Permanently'
-                );
-            }
-
+        if ($saveResult->success && $saveResult->showSuccessMessage) {
             $message = new CAdminMessage([
                 'MESSAGE' => Loc::getMessage('ZR_PAIDACCESS_SAVE_SUCCESS'),
                 'TYPE' => 'OK',
             ]);
-        } catch (\Throwable $e) {
+        } elseif (!$saveResult->success) {
             $message = new CAdminMessage([
-                'MESSAGE' => Loc::getMessage('ZR_PAIDACCESS_SAVE_ERROR') . ': ' . $e->getMessage(),
+                'MESSAGE' => Loc::getMessage('ZR_PAIDACCESS_SAVE_ERROR') . ': ' . $saveResult->errorMessage,
                 'TYPE' => 'ERROR',
             ]);
         }
@@ -130,9 +104,9 @@ if ($request->isPost() && check_bitrix_sessid()) {
 }
 
 if (!$bVarsFromForm && $isEditMode && !$message) {
-    $payment = PaymentRepository::getById($id);
-    if ($payment) {
-        $formValues = array_merge($formValues, $payment);
+    $loaded = PaymentAdminEditService::loadPaymentFormValues($id);
+    if ($loaded !== null) {
+        $formValues = $loaded;
     }
 }
 

@@ -44,17 +44,17 @@ final class PaymentCancellationServiceTest extends TestCase
         ]));
     }
 
-    public function testShouldCallGatewayCancelOnlyForUnpaidTinkoffPayments(): void
+    public function testShouldCallGatewayCancelForExternalGatewayPaymentIds(): void
     {
         $this->assertTrue(PaymentCancellationService::shouldCallGatewayCancel([
             'STATUS' => PaymentStatus::PENDING,
-            'GATEWAY_CODE' => 'tinkoff',
+            'GATEWAY_CODE' => 'acquirer',
             'GATEWAY_PAYMENT_ID' => '12345',
         ]));
 
         $this->assertTrue(PaymentCancellationService::shouldCallGatewayCancel([
             'STATUS' => PaymentStatus::PAID,
-            'GATEWAY_CODE' => 'tinkoff',
+            'GATEWAY_CODE' => 'acquirer',
             'GATEWAY_PAYMENT_ID' => '12345',
         ]));
 

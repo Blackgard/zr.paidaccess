@@ -20,6 +20,7 @@ class DocumentConsentViewService
             'SITE_ID' => $siteId,
             'PENDING_DOCUMENTS' => DocumentConsentService::getPendingDocuments($userId, $siteId),
             'HAS_PENDING' => DocumentConsentService::hasPendingDocuments($userId, $siteId),
+            'REQUIRE_DOCUMENT_OPEN' => PaidAccessCore::isDocumentConsentRequireOpen($siteId),
         ];
     }
 
