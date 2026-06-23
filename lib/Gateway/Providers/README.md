@@ -6,8 +6,8 @@
 от конкретного API банка.
 
 Главный принцип: **новый эквайринг добавляется как новый provider + gateway**.
-Не нужно править оплату подписки, блокировку доступа, ledger фонда или старые
-legacy-обработчики сайта.
+Не нужно править оплату подписки, блокировку доступа, ledger фонда или внешний
+проектный код сайта.
 
 ## Что уже делает модуль
 
@@ -18,7 +18,7 @@ legacy-обработчики сайта.
 3. `GatewayProviderRegistry` создаёт нужный gateway по полю `PROVIDER`.
 4. Gateway вызывает API банка: Init / создание счёта / создание платежа.
 5. Модуль сохраняет `GATEWAY_PAYMENT_ID` и, если есть, `GATEWAY_PAYMENT_URL`.
-6. Gateway отдаёт HTML для пользователя: QR СБП, кнопку оплаты или другой виджет.
+6. Gateway отдаёт данные для формы оплаты: QR payload, ссылку банка или другие DTO-поля.
 7. Webhook банка приходит в `tools/webhook.php?id={gateway_id}`.
 8. Gateway проверяет подпись webhook и маппит банковский статус во внутренний
    статус `PaymentStatus`.
@@ -345,7 +345,7 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 Чтобы новый банк работал с этой проверкой, достаточно корректно реализовать:
 
 - `initPayment()` — создать платёж в банке;
-- `fetchPaymentForm()` — вернуть `qrPayload` / `paymentUrl` (или непустой `html` для legacy);
+- `fetchPaymentForm()` — вернуть `qrPayload` / `paymentUrl` для presenter слоя;
 - `handleWebhook()` — вернуть `PaymentStatus::PAID` или `AUTHORIZED` на успешный
   callback банка.
 
@@ -373,8 +373,8 @@ https://{домен}/local/modules/zr.paidaccess/tools/webhook.php?id={ID шлю
 
 ## Что не трогать при добавлении банка
 
-- Не использовать legacy-инфоблоки оплат, `payments/check.php`, `api/tinkoff/*`
-  или таблицу `b_payments`.
+- Не подключать внешние источники платежей и проектные обработчики сайта как
+  источник истины для подписки.
 - Не добавлять банковскую логику в `Subscription`, `Access` или `Fund`.
 - Не править `GatewayFactory` и `GatewayProviderRegistry` без отдельной причины.
 - Не хранить секреты в PHP-файлах, README или миграциях.
