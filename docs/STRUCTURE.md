@@ -47,7 +47,7 @@ local/modules/zr.paidaccess/
 
 ### `classes/general/`
 
-Legacy-точка Bitrix для классов общего доступа.
+Стандартная Bitrix-точка для классов общего доступа.
 
 Разрешённый класс:
 
@@ -69,7 +69,7 @@ Legacy-точка Bitrix для классов общего доступа.
 Обязательные документы:
 
 - `STRUCTURE.md` — структура каталогов, namespaces, правила добавления файлов;
-- `BOUNDARIES.md` — границы слоёв, legacy-запреты, допустимые зависимости.
+- `BOUNDARIES.md` — границы слоёв, запреты внешних источников, допустимые зависимости.
 
 Рекомендуемые документы для новых крупных задач:
 
@@ -165,7 +165,7 @@ Namespace: `Zr\PaidAccess\Access`.
 
 - банковские provider-классы;
 - прямые HTTP-вызовы банка;
-- legacy IBLOCK оплат.
+- внешние источники оплат.
 
 ### `lib/subscription/`
 
@@ -274,7 +274,7 @@ Namespace: `Zr\PaidAccess\Fund`.
 
 - banking/gateway provider classes;
 - admin/public UI;
-- legacy IBLOCK.
+- внешние источники данных фонда.
 
 ### `lib/Document/`
 
@@ -298,7 +298,7 @@ Namespace: `Zr\PaidAccess\Document`.
 - runtime-зависимость от IBLOCK;
 - payment gateway/provider classes.
 
-Текущее отклонение: legacy BC-алиасы `Document\DocumentConsentPageRenderer` и `Payment\PayBlockPageRenderer` остаются для обратной совместимости; реализация — в `PublicUi`.
+Текущее отклонение: BC-алиасы `Document\DocumentConsentPageRenderer` и `Payment\PayBlockPageRenderer` остаются для обратной совместимости; реализация — в `PublicUi`.
 
 ### `lib/Admin/`
 
@@ -343,13 +343,13 @@ Namespace: `Zr\PaidAccess\PublicUi`.
 
 - view services для публичных компонентов;
 - presenter/read model для шаблонов сайта;
-- HTML presentation (виджеты оплаты, legacy full-page renderers);
+- HTML presentation (виджеты оплаты, full-page renderers);
 - hub/panel sections.
 
 Ключевые presentation-классы:
 
 - `PaymentWidgetPresenter` — QR СБП и кнопка оплаты (данные приходят из gateway DTO);
-- `PayBlockPageRenderer`, `DocumentConsentPageRenderer` — legacy full-page UI.
+- `PayBlockPageRenderer`, `DocumentConsentPageRenderer` — full-page UI.
 
 Разрешённые зависимости:
 
@@ -383,7 +383,7 @@ Namespace: `Zr\PaidAccess\Utility`.
 Запрещено:
 
 - runtime-бизнес-логика оплаты/подписки/доступа;
-- запись в legacy источники;
+- запись во внешние источники данных;
 - использование Utility как свалки для доменных сервисов.
 
 ### `lib/install/`
@@ -538,4 +538,4 @@ Test autoload:
 3. Если меняются зависимости между слоями, обновить `docs/BOUNDARIES.md`.
 4. Добавить класс в `include.php`, если он не попадает под provider auto-discovery.
 5. Добавить или обновить tests, если файл содержит бизнес-логику или новый контракт.
-6. Не добавлять legacy-зависимости без явного разрешения в `BOUNDARIES.md`.
+6. Не добавлять зависимости от внешних источников данных без явного разрешения в `BOUNDARIES.md`.
