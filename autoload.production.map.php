@@ -30,6 +30,7 @@ return  [
   'Zr\\PaidAccess\\Gateway\\Contract\\GatewayProviderInterface' => 'lib/Gateway/Contract/GatewayProviderInterface.php',
   'Zr\\PaidAccess\\Gateway\\Contract\\DuplicateOrderRecoverableGatewayInterface' => 'lib/Gateway/Contract/DuplicateOrderRecoverableGatewayInterface.php',
   'Zr\\PaidAccess\\Gateway\\Contract\\GatewayCancellableInterface' => 'lib/Gateway/Contract/GatewayCancellableInterface.php',
+  'Zr\\PaidAccess\\Gateway\\Contract\\StaleSessionRecoverableGatewayInterface' => 'lib/Gateway/Contract/StaleSessionRecoverableGatewayInterface.php',
   'Zr\\PaidAccess\\Gateway\\Contract\\GatewayPaymentUrlExtractorInterface' => 'lib/Gateway/Contract/GatewayPaymentUrlExtractorInterface.php',
   'Zr\\PaidAccess\\Gateway\\Contract\\GatewayWebhookDebugVerifierInterface' => 'lib/Gateway/Contract/GatewayWebhookDebugVerifierInterface.php',
   'Zr\\PaidAccess\\Admin\\AdminJsonResponse' => 'lib/Admin/AdminJsonResponse.php',

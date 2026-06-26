@@ -159,7 +159,7 @@ class ModeratorPaymentListService
         $amount = number_format((float)($row['AMOUNT'] ?? 0), 2, '.', ' ');
         $editUrl = '';
         if ($editUrlBase !== '') {
-            $joiner = str_contains($editUrlBase, '?') ? '&' : '?';
+            $joiner = strpos($editUrlBase, '?') !== false ? '&' : '?';
             $editUrl = $editUrlBase . $joiner . 'CODE=' . $id;
         }
 

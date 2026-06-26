@@ -5,6 +5,7 @@ namespace Zr\PaidAccess\Payment;
 use Zr\PaidAccess\Enum\GatewayEventType;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Contract\GatewayCancellableInterface;
+use Zr\PaidAccess\Gateway\Contract\StaleSessionRecoverableGatewayInterface;
 use Zr\PaidAccess\Gateway\GatewayFactory;
 use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Log\ModuleEventLogService;
@@ -159,6 +160,25 @@ class PaymentCancellationService
 
         $response = $gateway->cancelPayment($gatewayPaymentId, (int)$payment['ID'], $amountRub);
         if (empty($response['Success'])) {
+            if (
+                $gateway instanceof StaleSessionRecoverableGatewayInterface
+                && $gateway->isIgnorableCancelFailure($response, (string)$payment['STATUS'])
+            ) {
+                ModuleEventLogService::warning(
+                    'payment_cancel_gateway_ignored',
+                    'Отмена в банке недоступна, платёж закрыт локально',
+                    [
+                        'gatewayPaymentId' => $gatewayPaymentId,
+                        'gatewayMessage' => (string)($response['Message'] ?? ''),
+                        'gatewayDetails' => (string)($response['Details'] ?? ''),
+                    ],
+                    (int)$payment['ID'],
+                    (int)$payment['USER_ID']
+                );
+
+                return;
+            }
+
             $message = trim((string)($response['Message'] ?? 'Cancel failed') . ' ' . (string)($response['Details'] ?? ''));
             throw new \RuntimeException($message !== '' ? $message : 'Шлюз отклонил отмену платежа');
         }
