@@ -5,6 +5,7 @@ namespace Zr\PaidAccess\Payment;
 use Bitrix\Main\UserTable;
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Contract\DuplicateOrderRecoverableGatewayInterface;
+use Zr\PaidAccess\Gateway\Contract\StaleSessionRecoverableGatewayInterface;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\GatewayFactory;
@@ -179,6 +180,30 @@ class SubscriptionPaymentService
 
             if (
                 !$result->success
+                && $gateway instanceof StaleSessionRecoverableGatewayInterface
+                && $gateway->isStalePaymentSessionFailure($result)
+            ) {
+                $recycledPaymentId = self::recycleStalePendingPayment(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $gateway,
+                    $siteId
+                );
+                if ($recycledPaymentId !== null && $recycledPaymentId !== $modulePaymentId) {
+                    $modulePaymentId = $recycledPaymentId;
+                    $modulePayment = PaymentRepository::getById($modulePaymentId) ?? $modulePayment;
+                    $gatewayPaymentId = (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? '');
+                    if ($gatewayPaymentId !== '') {
+                        $result = $gateway->fetchPaymentForm(
+                            $gatewayPaymentId,
+                            self::buildFetchFormRequest($modulePayment, $widgetMode)
+                        );
+                    }
+                }
+            }
+
+            if (
+                !$result->success
                 && $gateway instanceof DuplicateOrderRecoverableGatewayInterface
                 && $gateway->isDuplicateOrderError($result)
                 && self::handleDuplicateOrderIdError(
@@ -318,6 +343,58 @@ class SubscriptionPaymentService
             'GATEWAY_PAYMENT_ID' => $result->gatewayPaymentId,
             'GATEWAY_PAYMENT_URL' => $result->paymentUrl,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $modulePayment
+     * @return int|null ID нового pending-платежа или null, если пересоздание не выполнено
+     */
+    private static function recycleStalePendingPayment(
+        int $modulePaymentId,
+        array $modulePayment,
+        $gateway,
+        ?string $siteId
+    ): ?int {
+        if ((string)($modulePayment['STATUS'] ?? '') !== PaymentStatus::PENDING) {
+            return null;
+        }
+
+        if (!$gateway instanceof StaleSessionRecoverableGatewayInterface
+            || !PaymentCancellationService::canCancel($modulePayment)
+        ) {
+            return null;
+        }
+
+        try {
+            PaymentCancellationService::cancel($modulePaymentId);
+            $newPaymentId = self::preparePayment((int)$modulePayment['USER_ID'], $siteId);
+        } catch (\Throwable $e) {
+            ModuleEventLogService::error(
+                'payment_stale_session_recycle_failed',
+                $e->getMessage(),
+                ['paymentId' => $modulePaymentId],
+                $modulePaymentId,
+                (int)($modulePayment['USER_ID'] ?? 0),
+                $siteId
+            );
+
+            return null;
+        }
+
+        ModuleEventLogService::info(
+            'payment_stale_session_recycled',
+            'Просроченная сессия банка закрыта, создан новый pending-платёж',
+            [
+                'previousPaymentId' => $modulePaymentId,
+                'newPaymentId' => $newPaymentId,
+                'orderId' => (string)($modulePayment['ORDER_ID'] ?? ''),
+            ],
+            $newPaymentId,
+            (int)$modulePayment['USER_ID'],
+            $siteId
+        );
+
+        return $newPaymentId;
     }
 
     /**

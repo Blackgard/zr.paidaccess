@@ -36,4 +36,28 @@ final class TinkoffPaymentUrlResolverTest extends TestCase
         $this->assertTrue(TinkoffPaymentUrlResolver::isAwaitingPayment('form_showed'));
         $this->assertFalse(TinkoffPaymentUrlResolver::isAwaitingPayment('CONFIRMED'));
     }
+
+    public function testIsStalePaymentStatus(): void
+    {
+        $this->assertTrue(TinkoffPaymentUrlResolver::isStalePaymentStatus('DEADLINE_EXPIRED'));
+        $this->assertTrue(TinkoffPaymentUrlResolver::isStalePaymentStatus('canceled'));
+        $this->assertFalse(TinkoffPaymentUrlResolver::isStalePaymentStatus('NEW'));
+    }
+
+    public function testIsStaleGatewayResponse(): void
+    {
+        $this->assertTrue(TinkoffPaymentUrlResolver::isStaleGatewayResponse([
+            'Success' => true,
+            'Status' => 'DEADLINE_EXPIRED',
+        ]));
+        $this->assertTrue(TinkoffPaymentUrlResolver::isStaleGatewayResponse([
+            'Success' => false,
+            'Message' => 'HTTP error',
+            'Details' => 'timeout',
+        ]));
+        $this->assertFalse(TinkoffPaymentUrlResolver::isStaleGatewayResponse([
+            'Success' => true,
+            'Status' => 'NEW',
+        ]));
+    }
 }

@@ -2,10 +2,12 @@
 
 namespace Zr\PaidAccess\Gateway\Providers\Tinkoff;
 
+use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Gateway\Contract\DuplicateOrderRecoverableGatewayInterface;
 use Zr\PaidAccess\Gateway\Contract\GatewayCancellableInterface;
 use Zr\PaidAccess\Gateway\Contract\GatewayWebhookDebugVerifierInterface;
 use Zr\PaidAccess\Gateway\Contract\PaymentGatewayInterface;
+use Zr\PaidAccess\Gateway\Contract\StaleSessionRecoverableGatewayInterface;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
 use Zr\PaidAccess\Gateway\Dto\WebhookHandleResult;
@@ -13,7 +15,7 @@ use Zr\PaidAccess\Gateway\GatewayRepository;
 use Zr\PaidAccess\Payment\PaymentRepository;
 use Zr\PaidAccess\Tools\Logger;
 
-class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverableGatewayInterface, GatewayCancellableInterface, GatewayWebhookDebugVerifierInterface
+class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverableGatewayInterface, GatewayCancellableInterface, GatewayWebhookDebugVerifierInterface, StaleSessionRecoverableGatewayInterface
 {
     public const CODE = 'tinkoff';
 
@@ -80,6 +82,39 @@ class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverab
     public function isDuplicateOrderError(InitPaymentResult $result): bool
     {
         return TinkoffInitError::isDuplicateOrderIdError($result);
+    }
+
+    public function isStalePaymentSessionFailure(InitPaymentResult $result): bool
+    {
+        if ($result->success) {
+            return false;
+        }
+
+        $message = (string)$result->errorMessage;
+        if (stripos($message, 'Платёж недоступен для оплаты') !== false) {
+            return true;
+        }
+
+        $raw = $this->decodeGatewayPayload($result->rawResponse);
+        if ($raw !== null && TinkoffPaymentUrlResolver::isStaleGatewayResponse($raw)) {
+            return true;
+        }
+
+        return stripos($message, 'HTTP error') !== false;
+    }
+
+    public function isIgnorableCancelFailure(array $gatewayResponse, string $internalPaymentStatus): bool
+    {
+        if (PaymentStatus::grantsAccess($internalPaymentStatus)) {
+            return false;
+        }
+
+        if (!in_array($internalPaymentStatus, [PaymentStatus::PENDING, PaymentStatus::FAILED], true)) {
+            return false;
+        }
+
+        return TinkoffPaymentUrlResolver::isStaleGatewayResponse($gatewayResponse)
+            || TinkoffPaymentUrlResolver::isHttpErrorResponse($gatewayResponse);
     }
 
     public function initPayment(InitPaymentRequest $request): InitPaymentResult
@@ -339,5 +374,19 @@ class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverab
         }
 
         $this->client->setLogContext($paymentId, $this->gatewayId);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeGatewayPayload(string $rawResponse): ?array
+    {
+        if ($rawResponse === '') {
+            return null;
+        }
+
+        $decoded = json_decode($rawResponse, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }
