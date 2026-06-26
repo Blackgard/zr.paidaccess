@@ -79,11 +79,9 @@ class GatewayTransactionRepository
     /**
 
      * @param array<string, mixed> $requestParams
-
      * @param array<string, mixed>|string|null $response
-
+     * @param array<string, string> $requestHeaders
      */
-
     public static function logHttpExchange(
         int $paymentId,
         int $gatewayId,
@@ -93,6 +91,7 @@ class GatewayTransactionRepository
         array $requestParams,
         $response,
         int $httpStatus,
+        array $requestHeaders = [],
         ?string $httpError = null
     ): int {
         if ($gatewayId <= 0 && $paymentId <= 0) {
@@ -130,6 +129,7 @@ class GatewayTransactionRepository
             'url' => $url,
             'apiMethod' => $apiMethod,
             'httpCode' => $httpStatus,
+            'headers' => Logger::sanitizeParams($requestHeaders),
             'params' => Logger::sanitizeParams($requestParams),
         ];
 

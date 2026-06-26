@@ -34,6 +34,51 @@ class GatewayTransactionAdminService
 
     /**
      * @param array<string, mixed> $filter
+     * @return list<array<string, mixed>>
+     */
+    public static function exportRows(array $filter, int $limit = LogExportAdminService::EXPORT_LIMIT): array
+    {
+        $ormFilter = self::buildFilter($filter);
+        $rows = [];
+
+        $result = GatewayTransactionTable::getList([
+            'filter' => $ormFilter,
+            'order' => ['ID' => 'DESC'],
+            'limit' => max(1, $limit),
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $formatted = self::formatRow($row);
+            $formatted['request'] = self::decodeJsonField((string)($formatted['REQUEST_DATA'] ?? ''));
+            $formatted['response'] = self::decodeJsonField((string)($formatted['RESPONSE_DATA'] ?? ''));
+            unset($formatted['REQUEST_DATA'], $formatted['RESPONSE_DATA']);
+            $rows[] = $formatted;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<string, mixed>|list<mixed>|string|null
+     */
+    protected static function decodeJsonField(string $raw)
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $raw;
+    }
+
+    /**
+     * @param array<string, mixed> $filter
      * @return array{rows: array<int, array<string, mixed>>, total: int}
      */
     public static function getRows(array $filter, int $limit, int $offset, array $order = ['ID' => 'DESC']): array

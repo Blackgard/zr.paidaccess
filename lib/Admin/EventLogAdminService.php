@@ -90,6 +90,94 @@ class EventLogAdminService
 
     /**
      * @param array<string, mixed> $filter
+     * @return list<array<string, mixed>>
+     */
+    public static function exportEventRows(array $filter, int $limit = LogExportAdminService::EXPORT_LIMIT): array
+    {
+        return self::fetchEventRows($filter, $limit);
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     * @return list<array<string, mixed>>
+     */
+    public static function exportAuditRows(array $filter, int $limit = LogExportAdminService::EXPORT_LIMIT): array
+    {
+        return self::fetchAuditRows($filter, $limit);
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     * @return list<array<string, mixed>>
+     */
+    protected static function fetchEventRows(array $filter, int $limit): array
+    {
+        $rows = [];
+        $result = EventLogTable::getList([
+            'filter' => self::buildEventFilter($filter),
+            'order' => ['ID' => 'DESC'],
+            'limit' => max(1, $limit),
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $formatted = self::formatEventRow($row);
+            $formatted['context'] = self::decodeJsonField((string)($formatted['CONTEXT'] ?? ''));
+            unset($formatted['CONTEXT']);
+            $rows[] = $formatted;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     * @return list<array<string, mixed>>
+     */
+    protected static function fetchAuditRows(array $filter, int $limit): array
+    {
+        $rows = [];
+        $result = AuditLogTable::getList([
+            'filter' => self::buildAuditFilter($filter),
+            'order' => ['ID' => 'DESC'],
+            'limit' => max(1, $limit),
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $formatted = self::formatAuditRow($row);
+            $formatted['oldValue'] = self::decodeJsonField((string)($formatted['OLD_VALUE'] ?? ''));
+            $formatted['newValue'] = self::decodeJsonField((string)($formatted['NEW_VALUE'] ?? ''));
+            unset($formatted['OLD_VALUE'], $formatted['NEW_VALUE']);
+            $rows[] = $formatted;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<string, mixed>|list<mixed>|string|null
+     */
+    protected static function decodeJsonField(string $raw)
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $raw;
+    }
+
+    /**
+     * @param array<string, mixed> $filter
      * @return array<string, mixed>
      */
     protected static function buildEventFilter(array $filter): array
