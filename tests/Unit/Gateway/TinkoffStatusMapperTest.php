@@ -24,6 +24,7 @@ final class TinkoffStatusMapperTest extends TestCase
             'confirmed' => ['CONFIRMED', PaymentStatus::PAID],
             'authorized' => ['AUTHORIZED', PaymentStatus::AUTHORIZED],
             'rejected' => ['REJECTED', PaymentStatus::FAILED],
+            'deadline_expired' => ['DEADLINE_EXPIRED', PaymentStatus::CANCELLED],
             'canceled' => ['CANCELED', PaymentStatus::CANCELLED],
             'reversed' => ['REVERSED', PaymentStatus::CANCELLED],
             'refunded' => ['REFUNDED', PaymentStatus::REFUNDED],

@@ -15,6 +15,7 @@ class TinkoffStatusMapper
                 return PaymentStatus::AUTHORIZED;
             case 'REJECTED':
                 return PaymentStatus::FAILED;
+            case 'DEADLINE_EXPIRED':
             case 'CANCELED':
             case 'REVERSED':
                 return PaymentStatus::CANCELLED;

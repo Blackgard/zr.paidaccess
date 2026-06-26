@@ -55,10 +55,13 @@ class GatewayTransactionContextRenderer
 
         if (!empty($decoded['url'])) {
             $apiMethod = !empty($decoded['apiMethod']) ? ' (' . (string)$decoded['apiMethod'] . ')' : '';
+            $httpCode = (int)($decoded['httpCode'] ?? 0);
+            $httpSuffix = $httpCode > 0 ? ' · HTTP ' . $httpCode : '';
 
             return '<div class="zr-paidaccess-audit-context__title">'
                 . 'Исходящий запрос' . htmlspecialcharsbx($apiMethod) . ': <code>'
                 . htmlspecialcharsbx((string)$decoded['url']) . '</code>'
+                . htmlspecialcharsbx($httpSuffix)
                 . '</div>';
         }
 

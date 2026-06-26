@@ -145,7 +145,13 @@ class TinkoffApiClient
         $responseBody = $response === false ? '' : (string)$response;
 
         if ($response === false) {
-            $result = ['Success' => false, 'Message' => 'HTTP error', 'Details' => $httpError];
+            $httpCode = $httpStatus > 0 ? $httpStatus : 0;
+            $result = [
+                'Success' => false,
+                'Message' => 'HTTP error',
+                'Details' => $httpError,
+                'HttpStatus' => $httpCode,
+            ];
 
             Logger::logHttpExchange(
                 self::PROVIDER_CODE,
@@ -153,7 +159,7 @@ class TinkoffApiClient
                 $url,
                 $params,
                 $result,
-                $httpStatus > 0 ? $httpStatus : 0,
+                $httpCode,
                 $durationMs,
                 $httpError,
                 ['testMode' => $this->testMode]
@@ -164,14 +170,15 @@ class TinkoffApiClient
                 $url,
                 $params,
                 $result,
-                $httpStatus > 0 ? $httpStatus : 0,
+                $httpCode,
                 $httpError !== '' ? $httpError : null
             );
 
             return $result;
         }
 
-        $result = self::parseResponse($httpStatus, $responseBody, $this->testMode);
+        $httpCode = $httpStatus > 0 ? $httpStatus : 200;
+        $result = self::parseResponse($httpCode, $responseBody, $this->testMode);
 
         Logger::logHttpExchange(
             self::PROVIDER_CODE,
@@ -179,7 +186,7 @@ class TinkoffApiClient
             $url,
             $params,
             $result,
-            $httpStatus > 0 ? $httpStatus : 200,
+            $httpCode,
             $durationMs,
             $httpError !== '' ? $httpError : null,
             [
@@ -193,7 +200,7 @@ class TinkoffApiClient
             $url,
             $params,
             $result,
-            $httpStatus > 0 ? $httpStatus : 200,
+            $httpCode,
             $httpError !== '' ? $httpError : null
         );
 
@@ -244,14 +251,20 @@ class TinkoffApiClient
 
         $decoded = json_decode($body, true);
 
-        return is_array($decoded)
-            ? $decoded
-            : [
-                'Success' => false,
-                'Message' => 'Invalid JSON',
-                'Details' => self::truncateBody($body),
-                'HttpStatus' => $httpStatus > 0 ? $httpStatus : 0,
-            ];
+        if (is_array($decoded)) {
+            if (!isset($decoded['HttpStatus'])) {
+                $decoded['HttpStatus'] = $httpStatus > 0 ? $httpStatus : 200;
+            }
+
+            return $decoded;
+        }
+
+        return [
+            'Success' => false,
+            'Message' => 'Invalid JSON',
+            'Details' => self::truncateBody($body),
+            'HttpStatus' => $httpStatus > 0 ? $httpStatus : 0,
+        ];
     }
 
     /**

@@ -23,6 +23,7 @@ class EventLogContextRenderer
         'bankStatus' => 'Статус в банке',
         'paymentId' => 'PaymentId банка',
         'gatewayStatus' => 'Статус шлюза',
+        'httpCode' => 'HTTP-код',
         'bankPaymentId' => 'PaymentId банка',
         'payloadTerminalKey' => 'TerminalKey',
         'scope' => 'Область',
@@ -108,6 +109,10 @@ class EventLogContextRenderer
 
         if (strpos($code, 'webhook_') === 0 || strpos($code, 'payment_webhook_') === 0) {
             return $webhookKeys;
+        }
+
+        if (strpos($code, 'payment_') === 0) {
+            return array_merge(['httpCode', 'orderId', 'gatewayCode', 'gatewayPaymentId'], $webhookKeys);
         }
 
         return array_merge($webhookKeys, ['scope', 'deleted']);

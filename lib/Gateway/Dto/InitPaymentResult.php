@@ -32,6 +32,9 @@ class InitPaymentResult
     /** @var string */
     public $rawResponse;
 
+    /** @var int HTTP-код ответа T-Bank (200, 403, 500 и т.д.) */
+    public $httpCode = 0;
+
     /** @var bool Автопереход на paymentUrl (кнопка оплаты) */
     public $autoRedirectPaymentButton = false;
 
@@ -55,6 +58,32 @@ class InitPaymentResult
 
     public static function fail($message, $raw = '')
     {
-        return new self(false, '', '', '', '', $message, $raw);
+        $result = new self(false, '', '', '', '', $message, $raw);
+        $result->httpCode = self::extractHttpCodeFromRaw($raw);
+
+        return $result;
+    }
+
+    public function getHttpCode(): int
+    {
+        if ($this->httpCode > 0) {
+            return $this->httpCode;
+        }
+
+        return self::extractHttpCodeFromRaw($this->rawResponse);
+    }
+
+    public static function extractHttpCodeFromRaw(string $rawResponse): int
+    {
+        if ($rawResponse === '') {
+            return 0;
+        }
+
+        $decoded = json_decode($rawResponse, true);
+        if (!is_array($decoded)) {
+            return 0;
+        }
+
+        return (int)($decoded['HttpStatus'] ?? $decoded['httpCode'] ?? 0);
     }
 }

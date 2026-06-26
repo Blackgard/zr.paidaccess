@@ -55,17 +55,11 @@ class SubscriptionPaymentService
         $failed = PaymentRepository::findFailedForCoveredPeriods($userId, $coveredPeriods);
         if ($failed) {
             $failedId = (int)$failed['ID'];
-            ModuleEventLogService::error(
-                'payment_period_init_blocked',
-                'Платёж за период уже завершился ошибкой; повторный Init не выполняется',
-                ['billingPeriod' => $billingPeriod, 'coveredPeriods' => $coveredPeriods],
-                $failedId,
-                $userId,
-                $siteId
-            );
-            throw new \RuntimeException(
-                'Не удалось создать платёж. Обратитесь к администратору сайта.'
-            );
+            self::reopenFailedPayment($failedId, $failed, $quote, $siteId);
+            $failed = PaymentRepository::getById($failedId) ?? $failed;
+            self::ensureGatewayInit($failedId, $failed, $siteId);
+
+            return $failedId;
         }
 
         $modulePaymentId = PaymentRepository::create(array_merge([
@@ -118,6 +112,38 @@ class SubscriptionPaymentService
             'GATEWAY_PAYMENT_ID' => null,
             'GATEWAY_PAYMENT_URL' => null,
         ], $quote->totalBreakdown->toPaymentAmountFields()));
+    }
+
+    /**
+     * @param array<string, mixed> $payment
+     */
+    private static function reopenFailedPayment(
+        int $paymentId,
+        array $payment,
+        SubscriptionPaymentQuote $quote,
+        ?string $siteId
+    ): void {
+        $coveredPeriods = $quote->coveredPeriods;
+        $billingPeriod = $coveredPeriods !== [] ? $coveredPeriods[count($coveredPeriods) - 1] : '';
+
+        PaymentRepository::update($paymentId, array_merge([
+            'STATUS' => PaymentStatus::PENDING,
+            'BILLING_PERIOD' => $billingPeriod,
+            'COVERED_PERIODS' => PaymentCoveredPeriods::encode($coveredPeriods),
+            'DESCRIPTION' => self::buildPaymentDescription($quote, $siteId),
+            'GATEWAY_PAYMENT_ID' => null,
+            'GATEWAY_PAYMENT_URL' => null,
+            'DATE_PAID' => null,
+        ], $quote->totalBreakdown->toPaymentAmountFields()));
+
+        ModuleEventLogService::info(
+            'payment_failed_reopened',
+            'Платёж со статусом «Ошибка» повторно открыт для оплаты',
+            ['billingPeriod' => $billingPeriod, 'coveredPeriods' => $coveredPeriods],
+            $paymentId,
+            (int)$payment['USER_ID'],
+            $siteId
+        );
     }
 
     private static function buildPaymentDescription(SubscriptionPaymentQuote $quote, ?string $siteId): string
@@ -239,11 +265,13 @@ class SubscriptionPaymentService
             }
 
             $errorMessage = $result->errorMessage ?: 'Не удалось получить форму оплаты';
+            $httpCode = $result->getHttpCode();
             Logger::warning(
                 'renderPaymentWidget failed',
                 [
                     'paymentId' => $modulePaymentId,
                     'error' => $errorMessage,
+                    'httpCode' => $httpCode > 0 ? $httpCode : null,
                     'rawResponse' => Logger::sanitizeParams(
                         is_array(json_decode((string)$result->rawResponse, true))
                             ? json_decode((string)$result->rawResponse, true)
@@ -256,7 +284,10 @@ class SubscriptionPaymentService
             ModuleEventLogService::error(
                 'payment_widget_form_failed',
                 $errorMessage,
-                ['gatewayPaymentId' => $gatewayPaymentId],
+                array_filter([
+                    'gatewayPaymentId' => $gatewayPaymentId,
+                    'httpCode' => $httpCode > 0 ? $httpCode : null,
+                ]),
                 $modulePaymentId,
                 (int)$modulePayment['USER_ID'],
                 $siteId
@@ -326,13 +357,22 @@ class SubscriptionPaymentService
                 return;
             }
 
+            if (
+                $gateway instanceof StaleSessionRecoverableGatewayInterface
+                && $gateway->isStalePaymentSessionFailure($result)
+            ) {
+                self::closeStalePayment($modulePaymentId, $modulePayment, $errorMessage, $siteId);
+                throw new \RuntimeException($errorMessage);
+            }
+
             if (!$isDuplicateOrderError) {
                 self::markPaymentFailed(
                     $modulePaymentId,
                     $modulePayment,
                     $errorMessage,
                     $siteId,
-                    'payment_init_failed'
+                    'payment_init_failed',
+                    $result->getHttpCode()
                 );
             }
 
@@ -369,16 +409,22 @@ class SubscriptionPaymentService
             PaymentCancellationService::cancel($modulePaymentId);
             $newPaymentId = self::preparePayment((int)$modulePayment['USER_ID'], $siteId);
         } catch (\Throwable $e) {
-            ModuleEventLogService::error(
-                'payment_stale_session_recycle_failed',
-                $e->getMessage(),
-                ['paymentId' => $modulePaymentId],
-                $modulePaymentId,
-                (int)($modulePayment['USER_ID'] ?? 0),
-                $siteId
-            );
+            self::closeStalePayment($modulePaymentId, $modulePayment, $e->getMessage(), $siteId);
 
-            return null;
+            try {
+                $newPaymentId = self::preparePayment((int)$modulePayment['USER_ID'], $siteId);
+            } catch (\Throwable $retryException) {
+                ModuleEventLogService::error(
+                    'payment_stale_session_recycle_failed',
+                    $retryException->getMessage(),
+                    ['paymentId' => $modulePaymentId, 'previousError' => $e->getMessage()],
+                    $modulePaymentId,
+                    (int)($modulePayment['USER_ID'] ?? 0),
+                    $siteId
+                );
+
+                return null;
+            }
         }
 
         ModuleEventLogService::info(
@@ -395,6 +441,28 @@ class SubscriptionPaymentService
         );
 
         return $newPaymentId;
+    }
+
+    /**
+     * @param array<string, mixed> $modulePayment
+     */
+    private static function closeStalePayment(
+        int $paymentId,
+        array $modulePayment,
+        string $reason,
+        ?string $siteId
+    ): void {
+        if (PaymentCancellationService::canCancel($modulePayment)) {
+            try {
+                PaymentCancellationService::cancel($paymentId);
+
+                return;
+            } catch (\Throwable $e) {
+                $reason = trim($reason . ' ' . $e->getMessage());
+            }
+        }
+
+        PaymentCancellationService::closeStaleSession($paymentId, $reason, $siteId);
     }
 
     /**
@@ -477,7 +545,8 @@ class SubscriptionPaymentService
         array $modulePayment,
         string $errorMessage,
         ?string $siteId,
-        string $logEvent
+        string $logEvent,
+        int $httpCode = 0
     ): void {
         if ((string)($modulePayment['STATUS'] ?? '') === PaymentStatus::FAILED) {
             return;
@@ -487,10 +556,11 @@ class SubscriptionPaymentService
         ModuleEventLogService::error(
             $logEvent,
             $errorMessage,
-            [
+            array_filter([
                 'orderId' => (string)$modulePayment['ORDER_ID'],
                 'gatewayCode' => (string)$modulePayment['GATEWAY_CODE'],
-            ],
+                'httpCode' => $httpCode > 0 ? $httpCode : null,
+            ]),
             $modulePaymentId,
             (int)$modulePayment['USER_ID'],
             $siteId

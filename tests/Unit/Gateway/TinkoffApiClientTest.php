@@ -180,5 +180,18 @@ final class TinkoffApiClientTest extends TestCase
 
         $this->assertTrue($result['Success']);
         $this->assertSame('123', $result['PaymentId']);
+        $this->assertSame(200, $result['HttpStatus']);
+    }
+
+    public function testParseResponseIncludesHttpStatusForServerError(): void
+    {
+        $result = TinkoffApiClient::parseResponse(
+            500,
+            '{"Success":false,"Message":"Internal error"}',
+            false
+        );
+
+        $this->assertFalse($result['Success']);
+        $this->assertSame(500, $result['HttpStatus']);
     }
 }

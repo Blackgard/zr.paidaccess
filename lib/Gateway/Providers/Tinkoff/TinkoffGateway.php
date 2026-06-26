@@ -134,7 +134,10 @@ class TinkoffGateway implements PaymentGatewayInterface, DuplicateOrderRecoverab
         $paymentId = (string)($response['PaymentId'] ?? '');
         $paymentUrl = TinkoffPaymentUrlResolver::extractFromArray($response);
 
-        return new InitPaymentResult(true, $paymentId, $paymentUrl, '', '', '', $raw);
+        $result = new InitPaymentResult(true, $paymentId, $paymentUrl, '', '', '', $raw);
+        $result->httpCode = (int)($response['HttpStatus'] ?? 200);
+
+        return $result;
     }
 
     public function fetchPaymentForm(string $gatewayPaymentId, InitPaymentRequest $request): InitPaymentResult
