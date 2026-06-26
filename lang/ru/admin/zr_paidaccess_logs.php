@@ -30,3 +30,6 @@ $MESS['ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_ALL'] = 'Удалить все запи�
 $MESS['ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_FILTER'] = 'Удалить записи, подходящие под текущий фильтр (#COUNT# шт.)? Действие необратимо.';
 $MESS['ZR_PAIDACCESS_LOGS_CLEAR_AUDIT'] = 'Очищен журнал: удалено #COUNT# записей';
 $MESS['ZR_PAIDACCESS_LOGS_CLEAR_SUCCESS'] = 'Удалено записей: #COUNT#';
+$MESS['ZR_PAIDACCESS_LOGS_EXPORT_JSON'] = 'Выгрузить JSON (по фильтру)';
+$MESS['ZR_PAIDACCESS_LOGS_EXPORT_JSON_ALL'] = 'Выгрузить JSON (все записи)';
+$MESS['ZR_PAIDACCESS_LOGS_EXPORT_JSON_ALL_CONFIRM'] = 'Выгрузить все записи текущей вкладки в JSON? Максимум 5000 последних записей.';

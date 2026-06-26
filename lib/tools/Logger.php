@@ -67,6 +67,7 @@ class Logger
     /**
      * @param array<string, mixed> $requestParams
      * @param array<string, mixed>|string|null $response
+     * @param array<string, string> $requestHeaders
      * @param array<string, mixed> $extra
      */
     public static function logHttpExchange(
@@ -78,6 +79,7 @@ class Logger
         int $httpStatus,
         float $durationMs,
         $httpError = null,
+        array $requestHeaders = [],
         array $extra = [],
         ?string $siteId = null
     ): void {
@@ -101,6 +103,7 @@ class Logger
             'httpCode' => $httpStatus,
             'durationMs' => round($durationMs, 2),
             'httpError' => self::normalizeHttpError($httpError),
+            'requestHeaders' => self::sanitizeParams($requestHeaders),
             'request' => self::sanitizeParams($requestParams),
             'response' => self::sanitizeParams($responseBody),
             'environment' => self::collectEnvironmentContext(),

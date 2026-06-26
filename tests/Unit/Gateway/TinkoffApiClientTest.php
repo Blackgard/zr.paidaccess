@@ -194,4 +194,12 @@ final class TinkoffApiClientTest extends TestCase
         $this->assertFalse($result['Success']);
         $this->assertSame(500, $result['HttpStatus']);
     }
+
+    public function testGetOutboundRequestHeaders(): void
+    {
+        $headers = TinkoffApiClient::getOutboundRequestHeaders();
+
+        $this->assertSame('application/json', $headers['Content-Type']);
+        $this->assertSame('application/json', $headers['Accept']);
+    }
 }

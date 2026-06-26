@@ -67,7 +67,17 @@ class TinkoffApiClient
     }
 
     /**
-     * Проверка Token входящего webhook.
+     * @return array<string, string>
+     */
+    public static function getOutboundRequestHeaders(): array
+    {
+        return [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+    }
+
+    /**
      *
      * @see https://developer.tbank.ru/eacq/intro/developer/notification#проверить-токен-уведомлений
      */
@@ -134,9 +144,11 @@ class TinkoffApiClient
         $url = ($this->testMode ? self::API_TEST : self::API_PROD) . $method;
         $startedAt = microtime(true);
 
+        $requestHeaders = self::getOutboundRequestHeaders();
         $client = new HttpClient(['socketTimeout' => 15, 'streamTimeout' => 15]);
-        $client->setHeader('Content-Type', 'application/json', true);
-        $client->setHeader('Accept', 'application/json', true);
+        foreach ($requestHeaders as $headerName => $headerValue) {
+            $client->setHeader($headerName, $headerValue, true);
+        }
 
         $response = $client->post($url, json_encode($params, JSON_UNESCAPED_UNICODE));
         $durationMs = (microtime(true) - $startedAt) * 1000;
@@ -162,6 +174,7 @@ class TinkoffApiClient
                 $httpCode,
                 $durationMs,
                 $httpError,
+                $requestHeaders,
                 ['testMode' => $this->testMode]
             );
 
@@ -171,6 +184,7 @@ class TinkoffApiClient
                 $params,
                 $result,
                 $httpCode,
+                $requestHeaders,
                 $httpError !== '' ? $httpError : null
             );
 
@@ -189,6 +203,7 @@ class TinkoffApiClient
             $httpCode,
             $durationMs,
             $httpError !== '' ? $httpError : null,
+            $requestHeaders,
             [
                 'testMode' => $this->testMode,
                 'apiBase' => $this->testMode ? 'test' : 'prod',
@@ -201,6 +216,7 @@ class TinkoffApiClient
             $params,
             $result,
             $httpCode,
+            $requestHeaders,
             $httpError !== '' ? $httpError : null
         );
 
@@ -217,6 +233,7 @@ class TinkoffApiClient
         array $params,
         array $result,
         int $httpStatus,
+        array $requestHeaders,
         ?string $httpError
     ): void {
         if ($this->logGatewayId <= 0 && $this->logPaymentId <= 0) {
@@ -233,6 +250,7 @@ class TinkoffApiClient
                 $params,
                 $result,
                 $httpStatus,
+                $requestHeaders,
                 $httpError
             );
         } catch (\Throwable $e) {

@@ -15,6 +15,7 @@ use Zr\PaidAccess\Admin\EventLogAdminService;
 use Zr\PaidAccess\Admin\EventLogContextRenderer;
 use Zr\PaidAccess\Admin\GatewayTransactionAdminService;
 use Zr\PaidAccess\Admin\GatewayTransactionContextRenderer;
+use Zr\PaidAccess\Admin\LogExportAdminService;
 use Zr\PaidAccess\Admin\LogCleanupAdminService;
 use Zr\PaidAccess\Admin\StatusBadgeRenderer;
 use Zr\PaidAccess\Enum\ModuleLogLevel;
@@ -113,6 +114,27 @@ if ($tab === 'gateway') {
 
 $filterOptions = new FilterOptions($gridId, $filterFields);
 $filterData = $filterOptions->getFilter($filterFields);
+
+if ($request->isPost() && (string)$request->getPost('action') === 'export') {
+    if ($POST_RIGHT < 'R') {
+        AdminJsonResponse::send(['success' => false, 'error' => Loc::getMessage('ACCESS_DENIED')]);
+    }
+
+    if (!check_bitrix_sessid()) {
+        AdminJsonResponse::send(['success' => false, 'error' => 'Invalid sessid']);
+    }
+
+    $scope = (string)$request->getPost('scope');
+    $exportFilter = $scope === 'all' ? [] : $filterData;
+    $json = LogExportAdminService::exportToJson($tab, $exportFilter);
+    $fileName = LogExportAdminService::buildFileName($tab);
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($json));
+    echo $json;
+    exit;
+}
 
 if ($request->isPost() && (string)$request->getPost('action') === 'clear') {
     if ($POST_RIGHT < 'W') {
@@ -291,8 +313,14 @@ $gatewayUrl = 'zr_paidaccess_logs.php?lang=' . urlencode($lang) . '&tab=gateway'
         <a href="<?= htmlspecialcharsbx($auditUrl) ?>"><?= Loc::getMessage('ZR_PAIDACCESS_LOGS_TAB_AUDIT') ?></a>
     <?php endif; ?>
 </p>
-<?php if ($POST_RIGHT >= 'W'): ?>
-    <p class="zr-paidaccess-log-actions">
+<p class="zr-paidaccess-log-actions">
+    <button type="button" class="adm-btn" id="zr_paidaccess_export_json">
+        <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_EXPORT_JSON') ?>
+    </button>
+    <button type="button" class="adm-btn" id="zr_paidaccess_export_json_all">
+        <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_EXPORT_JSON_ALL') ?>
+    </button>
+    <?php if ($POST_RIGHT >= 'W'): ?>
         <button type="button" class="adm-btn" id="zr_paidaccess_clear_all">
             <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_ALL') ?>
         </button>
@@ -305,59 +333,103 @@ $gatewayUrl = 'zr_paidaccess_logs.php?lang=' . urlencode($lang) . '&tab=gateway'
                 <?= Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_FILE') ?>
             </label>
         <?php endif; ?>
-    </p>
-    <script>
-        (function () {
-            var confirmAll = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_ALL', ['#COUNT#' => (int)$result['total']])) ?>';
-            var confirmFilter = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_FILTER', ['#COUNT#' => (int)$result['total']])) ?>';
+    <?php endif; ?>
+</p>
+<script>
+    (function () {
+        function exportLog(scope) {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = window.location.href;
+            form.style.display = 'none';
 
-            function clearLog(scope, message) {
-                if (!confirm(message)) {
+            var fields = {
+                sessid: BX.bitrix_sessid(),
+                action: 'export',
+                scope: scope
+            };
+
+            Object.keys(fields).forEach(function (name) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = fields[name];
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        var exportBtn = BX('zr_paidaccess_export_json');
+        if (exportBtn) {
+            BX.bind(exportBtn, 'click', function () {
+                exportLog('filter');
+            });
+        }
+
+        var exportAllBtn = BX('zr_paidaccess_export_json_all');
+        if (exportAllBtn) {
+            BX.bind(exportAllBtn, 'click', function () {
+                if (!confirm('<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_EXPORT_JSON_ALL_CONFIRM')) ?>')) {
                     return;
                 }
+                exportLog('all');
+            });
+        }
 
-                var clearFileEl = BX('zr_clear_file_log');
-                var clearFile = clearFileEl && clearFileEl.checked ? 'Y' : 'N';
+        <?php if ($POST_RIGHT >= 'W'): ?>
+        var confirmAll = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_ALL', ['#COUNT#' => (int)$result['total']])) ?>';
+        var confirmFilter = '<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_LOGS_CLEAR_CONFIRM_FILTER', ['#COUNT#' => (int)$result['total']])) ?>';
 
-                BX.ajax({
-                    method: 'POST',
-                    url: window.location.href,
-                    dataType: 'json',
-                    data: {
-                        sessid: BX.bitrix_sessid(),
-                        action: 'clear',
-                        scope: scope,
-                        clear_file: clearFile
-                    },
-                    onsuccess: function (response) {
-                        if (response && response.success) {
-                            window.location.reload();
-                            return;
-                        }
-                        alert((response && response.error) ? response.error : 'Ошибка очистки журнала');
-                    },
-                    onfailure: function () {
-                        alert('Ошибка запроса');
+        function clearLog(scope, message) {
+            if (!confirm(message)) {
+                return;
+            }
+
+            var clearFileEl = BX('zr_clear_file_log');
+            var clearFile = clearFileEl && clearFileEl.checked ? 'Y' : 'N';
+
+            BX.ajax({
+                method: 'POST',
+                url: window.location.href,
+                dataType: 'json',
+                data: {
+                    sessid: BX.bitrix_sessid(),
+                    action: 'clear',
+                    scope: scope,
+                    clear_file: clearFile
+                },
+                onsuccess: function (response) {
+                    if (response && response.success) {
+                        window.location.reload();
+                        return;
                     }
-                });
-            }
+                    alert((response && response.error) ? response.error : 'Ошибка очистки журнала');
+                },
+                onfailure: function () {
+                    alert('Ошибка запроса');
+                }
+            });
+        }
 
-            var btnAll = BX('zr_paidaccess_clear_all');
-            if (btnAll) {
-                BX.bind(btnAll, 'click', function () {
-                    clearLog('all', confirmAll);
-                });
-            }
+        var btnAll = BX('zr_paidaccess_clear_all');
+        if (btnAll) {
+            BX.bind(btnAll, 'click', function () {
+                clearLog('all', confirmAll);
+            });
+        }
 
-            var btnFilter = BX('zr_paidaccess_clear_filter');
-            if (btnFilter) {
-                BX.bind(btnFilter, 'click', function () {
-                    clearLog('filter', confirmFilter);
-                });
-            }
-        })();
-    </script>
-<?php endif; ?>
+        var btnFilter = BX('zr_paidaccess_clear_filter');
+        if (btnFilter) {
+            BX.bind(btnFilter, 'click', function () {
+                clearLog('filter', confirmFilter);
+            });
+        }
+        <?php endif; ?>
+    })();
+</script>
 <?php
 
 $APPLICATION->IncludeComponent(

@@ -57,12 +57,18 @@ class GatewayTransactionContextRenderer
             $apiMethod = !empty($decoded['apiMethod']) ? ' (' . (string)$decoded['apiMethod'] . ')' : '';
             $httpCode = (int)($decoded['httpCode'] ?? 0);
             $httpSuffix = $httpCode > 0 ? ' · HTTP ' . $httpCode : '';
-
-            return '<div class="zr-paidaccess-audit-context__title">'
+            $html = '<div class="zr-paidaccess-audit-context__title">'
                 . 'Исходящий запрос' . htmlspecialcharsbx($apiMethod) . ': <code>'
                 . htmlspecialcharsbx((string)$decoded['url']) . '</code>'
                 . htmlspecialcharsbx($httpSuffix)
                 . '</div>';
+
+            $headersHtml = self::renderHeadersSummary($decoded['headers'] ?? null);
+            if ($headersHtml !== '') {
+                $html .= $headersHtml;
+            }
+
+            return $html;
         }
 
         if (!isset($decoded['meta']) || !is_array($decoded['meta'])) {
@@ -91,6 +97,32 @@ class GatewayTransactionContextRenderer
         }
 
         return '<div class="zr-paidaccess-audit-context__title">' . implode(' · ', $parts) . '</div>';
+    }
+
+    /**
+     * @param mixed $headers
+     */
+    protected static function renderHeadersSummary($headers): string
+    {
+        if (!is_array($headers) || $headers === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($headers as $name => $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $parts[] = htmlspecialcharsbx((string)$name) . ': <code>'
+                . htmlspecialcharsbx((string)$value) . '</code>';
+        }
+
+        if ($parts === []) {
+            return '';
+        }
+
+        return '<div class="zr-paidaccess-audit-context__title">Заголовки: ' . implode(' · ', $parts) . '</div>';
     }
 
     protected static function formatPayload(?string $raw): string
