@@ -126,15 +126,11 @@ class GatewayTransactionRepository
         }
 
         $requestPayload = [
-
             'direction' => 'outbound',
-
             'url' => $url,
-
             'apiMethod' => $apiMethod,
-
+            'httpCode' => $httpStatus,
             'params' => Logger::sanitizeParams($requestParams),
-
         ];
 
         return self::log(

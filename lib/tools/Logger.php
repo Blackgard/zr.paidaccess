@@ -98,6 +98,7 @@ class Logger
             'method' => $method,
             'url' => $url,
             'httpStatus' => $httpStatus,
+            'httpCode' => $httpStatus,
             'durationMs' => round($durationMs, 2),
             'httpError' => self::normalizeHttpError($httpError),
             'request' => self::sanitizeParams($requestParams),
@@ -113,7 +114,7 @@ class Logger
                 : 'HTTP 403 от securepay.tinkoff.ru: проверьте TerminalKey/SecretKey и IP-ограничения в личном кабинете T-Bank.';
         }
 
-        self::write($level, $method . ' ' . $url, $context, $provider, $siteId);
+        self::write($level, sprintf('%s %s → HTTP %d', $method, $url, $httpStatus), $context, $provider, $siteId);
     }
 
     /**

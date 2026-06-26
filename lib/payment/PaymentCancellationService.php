@@ -135,6 +135,39 @@ class PaymentCancellationService
     }
 
     /**
+     * Закрыть просроченную сессию локально (статус «Отмена»), если Cancel в банке недоступен.
+     */
+    public static function closeStaleSession(int $paymentId, ?string $reason = null, ?string $siteId = null): void
+    {
+        $payment = PaymentRepository::getById($paymentId);
+        if (!$payment || (string)$payment['STATUS'] === PaymentStatus::CANCELLED) {
+            return;
+        }
+
+        if (!self::canCancel($payment)) {
+            return;
+        }
+
+        PaymentRepository::update($paymentId, [
+            'STATUS' => PaymentStatus::CANCELLED,
+            'DATE_PAID' => null,
+        ]);
+
+        ModuleEventLogService::info(
+            'payment_stale_session_cancelled',
+            $reason !== null && trim($reason) !== ''
+                ? trim($reason)
+                : 'Просроченная сессия банка закрыта локально',
+            ['paymentId' => $paymentId],
+            $paymentId,
+            (int)$payment['USER_ID'],
+            $siteId
+        );
+
+        SubscriptionService::reconcileUserSubscription((int)$payment['USER_ID']);
+    }
+
+    /**
      * @param array<string, mixed> $payment
      */
     private static function cancelInGateway(array $payment, string $gatewayPaymentId): void

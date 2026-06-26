@@ -138,7 +138,7 @@ class PaymentRepository
     }
 
     /**
-     * Последний неуспешный платёж за период (без повторного Init при каждом заходе на сайт).
+     * Последний неуспешный платёж за период (для повторного открытия в preparePayment).
      */
     public static function findFailedForPeriod(int $userId, string $billingPeriod): ?array
     {
