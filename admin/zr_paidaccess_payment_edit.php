@@ -58,6 +58,25 @@ if ($isEditMode) {
 }
 
 if ($request->isPost() && check_bitrix_sessid()) {
+    if ($isEditMode && $request->getPost('retry_gateway_init') !== null) {
+        try {
+            PaymentAdminEditService::retryGatewayInit($id);
+            $loaded = PaymentAdminEditService::loadPaymentFormValues($id);
+            if ($loaded !== null) {
+                $formValues = $loaded;
+            }
+            $message = new CAdminMessage([
+                'MESSAGE' => Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT_SUCCESS'),
+                'TYPE' => 'OK',
+            ]);
+        } catch (\Throwable $e) {
+            $message = new CAdminMessage([
+                'MESSAGE' => Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT_ERROR') . ': ' . $e->getMessage(),
+                'TYPE' => 'ERROR',
+            ]);
+        }
+    }
+
     $save = $request->getPost('save');
     $apply = $request->getPost('apply');
 
@@ -116,6 +135,7 @@ $periodFormatHint = BillingPolicy::getBillingPeriodFormatHint();
 $periodPlaceholder = BillingPolicy::getBillingPeriodInputPlaceholder();
 $periodInputPattern = BillingPolicy::getBillingPeriodInputPattern();
 $isPersonalPeriodMode = PaidAccessCore::isPersonalBillingPeriodMode();
+$canRetryGatewayInit = $isEditMode && PaymentAdminEditService::canRetryGatewayInit($id);
 
 $aTabs = [
     ['DIV' => 'main', 'TAB' => Loc::getMessage('ZR_PAIDACCESS_SECTION_MAIN'), 'TITLE' => Loc::getMessage('ZR_PAIDACCESS_SECTION_MAIN')],
@@ -289,6 +309,20 @@ $tabControl->BeginNextTab();
                                    value="<?= htmlspecialcharsbx((string)$formValues['DATE_PAID']) ?>">
                         </td>
                     </tr>
+                    <?php if ($canRetryGatewayInit): ?>
+                    <tr>
+                        <td class="adm-detail-content-cell-l"><?= Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT') ?>:</td>
+                        <td class="adm-detail-content-cell-r">
+                            <button type="submit" name="retry_gateway_init" value="Y" class="adm-btn"
+                                    onclick="return confirm('<?= CUtil::JSEscape(Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT_CONFIRM')) ?>');">
+                                <?= Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT_BTN') ?>
+                            </button>
+                            <div class="adm-input-description" style="margin-top:8px;">
+                                <?= Loc::getMessage('ZR_PAIDACCESS_RETRY_INIT_HINT') ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                     <?php endif; ?>
                 </table>
             </div>

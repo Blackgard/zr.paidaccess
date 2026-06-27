@@ -6,55 +6,48 @@ use Zr\PaidAccess\Gateway\Dto\InitPaymentRequest;
 
 class TinkoffReceiptBuilder
 {
+    private const DESCRIPTION_MAX_LENGTH = 140;
+    private const ITEM_NAME_MAX_LENGTH = 128;
+
     public static function buildInitBody(InitPaymentRequest $request, TinkoffConfig $config)
     {
         $amountKopecks = $request->getAmountKopecks();
+        $description = self::truncate($request->description, self::DESCRIPTION_MAX_LENGTH);
+
         $body = [
             'Amount' => $amountKopecks,
             'OrderId' => $request->orderId,
-            'Description' => $request->description,
+            'Description' => $description,
         ];
-
-        $data = [];
-        if ($request->email) {
-            $data['Email'] = $request->email;
-        }
-        if ($request->phone) {
-            $data['Phone'] = $request->phone;
-        }
-        if (!empty($data)) {
-            $body['DATA'] = $data;
-        }
 
         if ($config->getLanguage() === 'en') {
             $body['Language'] = 'en';
         }
 
         if (!$config->isReceiptEnabled()) {
+            $data = self::buildData($request);
+            if ($data !== []) {
+                $body['DATA'] = $data;
+            }
+
             return $body;
         }
 
         $item = [
-            'Name' => mb_substr($request->description, 0, 64, 'UTF-8'),
+            'Name' => self::truncate($description, self::ITEM_NAME_MAX_LENGTH),
             'Price' => $amountKopecks,
             'Quantity' => 1,
             'Amount' => $amountKopecks,
+            'Tax' => trim($config->getItemTax()),
             'PaymentMethod' => trim($config->getPaymentMethod()),
             'PaymentObject' => trim($config->getPaymentObject()),
-            'Tax' => trim($config->getItemTax()),
         ];
 
         if ($config->isFfd12()) {
-            $item['MeasurementUnit'] = 'pc';
-        }
-
-        $emailCompany = mb_substr($config->getEmailCompany(), 0, 64, 'UTF-8');
-        if ($emailCompany === '') {
-            $emailCompany = 'none';
+            $item['MeasurementUnit'] = 'шт';
         }
 
         $receipt = [
-            'EmailCompany' => $emailCompany,
             'Taxation' => $config->getTaxation(),
             'Items' => [$item],
         ];
@@ -66,12 +59,34 @@ class TinkoffReceiptBuilder
             $receipt['Phone'] = $request->phone;
         }
 
-        if ($config->isFfd12()) {
-            $receipt['FfdVersion'] = '1.2';
-        }
-
         $body['Receipt'] = $receipt;
 
         return $body;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function buildData(InitPaymentRequest $request): array
+    {
+        $data = [];
+        if ($request->email) {
+            $data['Email'] = $request->email;
+        }
+        if ($request->phone) {
+            $data['Phone'] = $request->phone;
+        }
+
+        return $data;
+    }
+
+    private static function truncate(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        if ($value === '' || mb_strlen($value) <= $maxLength) {
+            return $value;
+        }
+
+        return mb_substr($value, 0, $maxLength, 'UTF-8');
     }
 }

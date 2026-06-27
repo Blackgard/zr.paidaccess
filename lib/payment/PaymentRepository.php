@@ -156,6 +156,61 @@ class PaymentRepository
     }
 
     /**
+     * Платёж без сессии в банке (failed/cancelled), который можно снова отправить в Init.
+     *
+     * @param string[] $coveredPeriods
+     */
+    public static function findReopenableForCoveredPeriods(int $userId, array $coveredPeriods): ?array
+    {
+        if ($userId <= 0 || $coveredPeriods === []) {
+            return null;
+        }
+
+        $result = PaymentTable::getList([
+            'filter' => [
+                '=USER_ID' => $userId,
+                '@STATUS' => [PaymentStatus::FAILED, PaymentStatus::CANCELLED],
+            ],
+            'order' => ['ID' => 'DESC'],
+        ]);
+
+        while ($row = $result->fetch()) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (!self::isReopenableForGatewayInit($row)) {
+                continue;
+            }
+
+            if (self::coveredPeriodsEqual(PaymentCoveredPeriods::fromPaymentRow($row), $coveredPeriods)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $payment
+     */
+    public static function isReopenableForGatewayInit(array $payment): bool
+    {
+        if (trim((string)($payment['GATEWAY_PAYMENT_ID'] ?? '')) !== '') {
+            return false;
+        }
+
+        $gatewayCode = trim((string)($payment['GATEWAY_CODE'] ?? ''));
+
+        return $gatewayCode !== ''
+            && $gatewayCode !== 'manual'
+            && in_array((string)($payment['STATUS'] ?? ''), [
+                PaymentStatus::FAILED,
+                PaymentStatus::CANCELLED,
+            ], true);
+    }
+
+    /**
      * @param string[] $coveredPeriods
      */
     public static function findFailedForCoveredPeriods(int $userId, array $coveredPeriods): ?array

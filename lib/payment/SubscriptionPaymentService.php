@@ -52,14 +52,14 @@ class SubscriptionPaymentService
             return $existingId;
         }
 
-        $failed = PaymentRepository::findFailedForCoveredPeriods($userId, $coveredPeriods);
-        if ($failed) {
-            $failedId = (int)$failed['ID'];
-            self::reopenFailedPayment($failedId, $failed, $quote, $siteId);
-            $failed = PaymentRepository::getById($failedId) ?? $failed;
-            self::ensureGatewayInit($failedId, $failed, $siteId);
+        $reopenable = PaymentRepository::findReopenableForCoveredPeriods($userId, $coveredPeriods);
+        if ($reopenable) {
+            $reopenId = (int)$reopenable['ID'];
+            self::reopenForGatewayInit($reopenId, $reopenable, $quote, $siteId);
+            $reopenable = PaymentRepository::getById($reopenId) ?? $reopenable;
+            self::ensureGatewayInit($reopenId, $reopenable, $siteId);
 
-            return $failedId;
+            return $reopenId;
         }
 
         $modulePaymentId = PaymentRepository::create(array_merge([
@@ -115,14 +115,68 @@ class SubscriptionPaymentService
     }
 
     /**
+     * Повторный Init в банке для платежа без PaymentId шлюза (из админки или API).
+     */
+    public static function retryGatewayInit(int $paymentId, ?string $siteId = null): void
+    {
+        $siteId = PaidAccessCore::normalizeSiteId($siteId);
+        $payment = PaymentRepository::getById($paymentId);
+
+        if (!$payment || !self::canRetryGatewayInit($payment)) {
+            throw new \RuntimeException(
+                'Платёж нельзя повторно инициализировать в банке: нужен статус pending/failed/cancelled '
+                . 'и пустой PaymentId шлюза'
+            );
+        }
+
+        $quote = SubscriptionPaymentQuote::forUser((int)$payment['USER_ID'], $siteId);
+        $status = (string)($payment['STATUS'] ?? '');
+
+        if (in_array($status, [PaymentStatus::FAILED, PaymentStatus::CANCELLED], true)) {
+            self::reopenForGatewayInit($paymentId, $payment, $quote, $siteId);
+        } elseif ($status === PaymentStatus::PENDING) {
+            self::syncPendingPayment($paymentId, $payment, $quote, $siteId);
+        }
+
+        $payment = PaymentRepository::getById($paymentId) ?? $payment;
+        self::ensureGatewayInit($paymentId, $payment, $siteId);
+    }
+
+    /**
+     * @param array<string, mixed>|null $payment
+     */
+    public static function canRetryGatewayInit(?array $payment): bool
+    {
+        if (!$payment) {
+            return false;
+        }
+
+        if (trim((string)($payment['GATEWAY_PAYMENT_ID'] ?? '')) !== '') {
+            return false;
+        }
+
+        $gatewayCode = trim((string)($payment['GATEWAY_CODE'] ?? ''));
+        if ($gatewayCode === '' || $gatewayCode === 'manual') {
+            return false;
+        }
+
+        return in_array((string)($payment['STATUS'] ?? ''), [
+            PaymentStatus::PENDING,
+            PaymentStatus::FAILED,
+            PaymentStatus::CANCELLED,
+        ], true);
+    }
+
+    /**
      * @param array<string, mixed> $payment
      */
-    private static function reopenFailedPayment(
+    private static function reopenForGatewayInit(
         int $paymentId,
         array $payment,
         SubscriptionPaymentQuote $quote,
         ?string $siteId
     ): void {
+        $previousStatus = (string)($payment['STATUS'] ?? '');
         $coveredPeriods = $quote->coveredPeriods;
         $billingPeriod = $coveredPeriods !== [] ? $coveredPeriods[count($coveredPeriods) - 1] : '';
 
@@ -137,9 +191,14 @@ class SubscriptionPaymentService
         ], $quote->totalBreakdown->toPaymentAmountFields()));
 
         ModuleEventLogService::info(
-            'payment_failed_reopened',
-            'Платёж со статусом «Ошибка» повторно открыт для оплаты',
-            ['billingPeriod' => $billingPeriod, 'coveredPeriods' => $coveredPeriods],
+            'payment_reopened_for_init',
+            'Платёж повторно открыт для Init в банке',
+            [
+                'billingPeriod' => $billingPeriod,
+                'coveredPeriods' => $coveredPeriods,
+                'previousStatus' => $previousStatus,
+                'orderId' => (string)($payment['ORDER_ID'] ?? ''),
+            ],
             $paymentId,
             (int)$payment['USER_ID'],
             $siteId

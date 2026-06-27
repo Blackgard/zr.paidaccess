@@ -484,7 +484,8 @@ Namespace: `Zr\PaidAccess\Tools`.
 Разрешённые файлы:
 
 - `webhook.php`;
-- `verify_webhook_token.php`.
+- `verify_webhook_token.php`;
+- `diagnose_tinkoff_init.php` — диагностика Init T-Bank (IP, traceroute, пробный запрос).
 
 Правила:
 

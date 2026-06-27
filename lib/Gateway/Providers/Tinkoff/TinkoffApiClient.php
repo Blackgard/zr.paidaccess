@@ -5,6 +5,7 @@ namespace Zr\PaidAccess\Gateway\Providers\Tinkoff;
 use Bitrix\Main\Web\HttpClient;
 use Zr\PaidAccess\Payment\GatewayTransactionRepository;
 use Zr\PaidAccess\Tools\Logger;
+use Zr\PaidAccess\Utility\NetworkPathDiagnosticService;
 
 class TinkoffApiClient
 {
@@ -12,6 +13,9 @@ class TinkoffApiClient
 
     private const API_PROD = 'https://securepay.tinkoff.ru/v2/';
     private const API_TEST = 'https://rest-api-test.tinkoff.ru/v2/';
+
+    /** Рекомендация T-Bank для таймаута исходящих запросов. */
+    public const HTTP_TIMEOUT_SECONDS = 40;
 
     /** @var string */
     private $terminalKey;
@@ -145,7 +149,10 @@ class TinkoffApiClient
         $startedAt = microtime(true);
 
         $requestHeaders = self::getOutboundRequestHeaders();
-        $client = new HttpClient(['socketTimeout' => 15, 'streamTimeout' => 15]);
+        $client = new HttpClient([
+            'socketTimeout' => self::HTTP_TIMEOUT_SECONDS,
+            'streamTimeout' => self::HTTP_TIMEOUT_SECONDS,
+        ]);
         foreach ($requestHeaders as $headerName => $headerValue) {
             $client->setHeader($headerName, $headerValue, true);
         }
@@ -153,7 +160,7 @@ class TinkoffApiClient
         $response = $client->post($url, json_encode($params, JSON_UNESCAPED_UNICODE));
         $durationMs = (microtime(true) - $startedAt) * 1000;
         $httpStatus = (int)$client->getStatus();
-        $httpError = (string)$client->getError();
+        $httpError = NetworkPathDiagnosticService::formatHttpClientError($client->getError());
         $responseBody = $response === false ? '' : (string)$response;
 
         if ($response === false) {
