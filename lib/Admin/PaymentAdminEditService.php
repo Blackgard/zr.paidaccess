@@ -4,6 +4,7 @@ namespace Zr\PaidAccess\Admin;
 
 use Zr\PaidAccess\Enum\PaymentStatus;
 use Zr\PaidAccess\Payment\PaymentRepository;
+use Zr\PaidAccess\Payment\SubscriptionPaymentService;
 
 /**
  * Оркестрация admin-формы редактирования платежа (zr_paidaccess_payment_edit.php).
@@ -137,5 +138,19 @@ class PaymentAdminEditService
 
             return $result;
         }
+    }
+
+    public static function canRetryGatewayInit(int $paymentId): bool
+    {
+        if ($paymentId <= 0) {
+            return false;
+        }
+
+        return SubscriptionPaymentService::canRetryGatewayInit(PaymentRepository::getById($paymentId));
+    }
+
+    public static function retryGatewayInit(int $paymentId): void
+    {
+        SubscriptionPaymentService::retryGatewayInit($paymentId);
     }
 }

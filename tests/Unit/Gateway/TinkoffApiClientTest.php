@@ -202,4 +202,9 @@ final class TinkoffApiClientTest extends TestCase
         $this->assertSame('application/json', $headers['Content-Type']);
         $this->assertSame('application/json', $headers['Accept']);
     }
+
+    public function testHttpTimeoutMatchesBankRecommendation(): void
+    {
+        $this->assertSame(40, TinkoffApiClient::HTTP_TIMEOUT_SECONDS);
+    }
 }

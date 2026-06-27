@@ -25,6 +25,7 @@ class FileInstaller
         '/admin/zr_paidaccess_document_version_edit.php' => '/bitrix/admin/zr_paidaccess_document_version_edit.php',
         '/admin/zr_paidaccess_utilities.php' => '/bitrix/admin/zr_paidaccess_utilities.php',
         '/admin/zr_paidaccess_util_document_iblock.php' => '/bitrix/admin/zr_paidaccess_util_document_iblock.php',
+        '/admin/zr_paidaccess_util_tinkoff_init.php' => '/bitrix/admin/zr_paidaccess_util_tinkoff_init.php',
         '/admin/zr_paidaccess_gateways.php' => '/bitrix/admin/zr_paidaccess_gateways.php',
         '/admin/zr_paidaccess_gateway_edit.php' => '/bitrix/admin/zr_paidaccess_gateway_edit.php',
         '/admin/zr_paidaccess_gateway_import.php' => '/bitrix/admin/zr_paidaccess_gateway_import.php',

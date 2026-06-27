@@ -8,6 +8,7 @@ namespace Zr\PaidAccess\Utility;
 final class UtilitiesRegistry
 {
     public const GROUP_MIGRATION = 'migration';
+    public const GROUP_DIAGNOSTICS = 'diagnostics';
 
     /**
      * @return array<string, array{
@@ -27,6 +28,22 @@ final class UtilitiesRegistry
     public static function getGroups(): array
     {
         $groups = [
+            self::GROUP_DIAGNOSTICS => [
+                'code' => self::GROUP_DIAGNOSTICS,
+                'title' => 'Диагностика',
+                'description' => 'Проверка сети и пробные запросы к платёжным API для техподдержки банка.',
+                'sort' => 50,
+                'utilities' => [
+                    'tinkoff_init' => [
+                        'code' => 'tinkoff_init',
+                        'title' => 'Init T-Bank: сеть и трассировка',
+                        'description' => 'IP сервера, DNS, traceroute/tracert и пробный Init с таймаутом 40 с. '
+                            . 'Результат можно скопировать и отправить в техподдержку T-Bank.',
+                        'page' => 'zr_paidaccess_util_tinkoff_init.php',
+                        'sort' => 100,
+                    ],
+                ],
+            ],
             self::GROUP_MIGRATION => [
                 'code' => self::GROUP_MIGRATION,
                 'title' => 'Миграция данных',

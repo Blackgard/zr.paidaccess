@@ -44,12 +44,6 @@ class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptC
                 'default' => 'Y',
             ],
             [
-                'code' => 'email_company',
-                'title' => 'Email компании',
-                'type' => 'text',
-                'default' => '',
-            ],
-            [
                 'code' => 'enable_taxation',
                 'title' => 'Передавать данные для формирования чека (54-ФЗ)',
                 'type' => 'select',
@@ -61,9 +55,9 @@ class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptC
                 'title' => 'Фискальный чек',
                 'type' => 'note',
                 'text' => 'При включённой передаче чека T-Bank регистрирует фискальный документ в ОФД '
-                    . 'и отправляет его на email покупателя (поле Receipt.Email в Init), если у пользователя '
-                    . 'указан email в профиле. Требуется подключённая онлайн-касса в личном кабинете T-Bank. '
-                    . 'Сайт сам фискальные чеки не выбивает.',
+                    . 'и отправляет его на email покупателя (Receipt.Email в Init), если у пользователя '
+                    . 'указан email в профиле. В Init передаются только поля из API T-Bank без EmailCompany и FfdVersion. '
+                    . 'Требуется подключённая онлайн-касса в личном кабинете T-Bank.',
             ],
             [
                 'code' => 'ffd',
@@ -174,7 +168,7 @@ class TinkoffProvider extends AbstractGatewayProvider implements GatewayReceiptC
             $enabled ? ReceiptDeliveryInfo::ISSUER_GATEWAY : ReceiptDeliveryInfo::ISSUER_NONE,
             $enabled && $email !== '',
             'Фискальный чек (54-ФЗ) формирует T-Bank при успешной оплате. '
-            . 'Email покупателя передаётся в Receipt при Init; копия — на Email компании.'
+            . 'Email покупателя передаётся в Receipt.Email при Init, если указан в профиле.'
         );
     }
 }

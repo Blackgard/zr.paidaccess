@@ -21,11 +21,15 @@ final class ModuleBoundaryTest extends TestCase
     public function testTinkoffProviderImportsStayInsideProviderAndTests(): void
     {
         $moduleRoot = dirname(__DIR__, 3);
+        $allowed = [
+            'lib/Admin/TinkoffInitDiagnosticAdminService.php',
+        ];
         $violations = [];
 
         foreach ($this->phpFiles($moduleRoot) as $path => $content) {
             if ($this->isInside($path, 'lib/Gateway/Providers/Tinkoff/')
                 || $this->isInside($path, 'tests/')
+                || in_array($path, $allowed, true)
             ) {
                 continue;
             }

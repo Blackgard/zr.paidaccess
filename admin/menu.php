@@ -55,6 +55,7 @@ return [
                 'url' => 'zr_paidaccess_utilities.php?lang=' . LANGUAGE_ID,
                 'more_url' => [
                     'zr_paidaccess_util_document_iblock.php',
+                    'zr_paidaccess_util_tinkoff_init.php',
                 ],
             ],
             [
