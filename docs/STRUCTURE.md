@@ -349,6 +349,7 @@ Namespace: `Zr\PaidAccess\PublicUi`.
 Ключевые presentation-классы:
 
 - `PaymentWidgetPresenter` — QR СБП и кнопка оплаты (данные приходят из gateway DTO);
+- `PaymentStatusPollService` — JSON-ответ для опроса статуса и редиректа после оплаты;
 - `PayBlockPageRenderer`, `DocumentConsentPageRenderer` — full-page UI.
 
 Разрешённые зависимости:
@@ -484,6 +485,7 @@ Namespace: `Zr\PaidAccess\Tools`.
 Разрешённые файлы:
 
 - `webhook.php`;
+- `payment_status.php` — JSON-опрос статуса платежа для авторедиректа после оплаты;
 - `verify_webhook_token.php`;
 - `diagnose_tinkoff_init.php` — диагностика Init T-Bank (IP, traceroute, пробный запрос).
 

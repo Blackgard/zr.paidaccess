@@ -3,6 +3,7 @@
 namespace Zr\PaidAccess\PublicUi;
 
 use Zr\PaidAccess\Gateway\Dto\InitPaymentResult;
+use Zr\PaidAccess\PaidAccessCore;
 
 /**
  * HTML-виджеты оплаты (QR СБП, кнопка T-Bank).
@@ -17,6 +18,10 @@ class PaymentWidgetPresenter
     public const QR_IMAGE_SERVICE_URL = 'https://api.qrserver.com/v1/create-qr-code/';
 
     public const QR_IMAGE_SIZE = '280x280';
+
+    public const STATUS_POLL_INTERVAL_MS = 3000;
+
+    public const STATUS_POLL_MAX_MS = 900000;
 
     private const PAYMENT_BUTTON_CSS = '/local/modules/zr.paidaccess/install/assets/payment-button.css';
     private const TBANK_PAY_LOGO = '/local/modules/zr.paidaccess/install/assets/tbank-pay-logo.svg';
@@ -76,6 +81,80 @@ class PaymentWidgetPresenter
         }
 
         return $html;
+    }
+
+    /**
+     * JS-опрос статуса платежа и редирект после успешной оплаты.
+     */
+    public static function buildStatusPollerHtml(
+        int $paymentId,
+        string $statusUrl,
+        string $redirectUrl,
+        int $intervalMs = self::STATUS_POLL_INTERVAL_MS,
+        int $maxMs = self::STATUS_POLL_MAX_MS
+    ): string {
+        if ($paymentId <= 0 || $statusUrl === '' || $redirectUrl === '') {
+            return '';
+        }
+
+        $config = json_encode([
+            'paymentId' => $paymentId,
+            'statusUrl' => $statusUrl,
+            'redirectUrl' => $redirectUrl,
+            'intervalMs' => max(1000, $intervalMs),
+            'maxMs' => max(5000, $maxMs),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if ($config === false) {
+            return '';
+        }
+
+        return '<div class="zr-paidaccess-payment-status" data-zr-paidaccess-poll="1" aria-live="polite">'
+            . '<p class="zr-paidaccess-payment-status__hint"><small>После оплаты страница обновится автоматически</small></p>'
+            . '</div>'
+            . '<script>(function(){'
+            . 'var c=' . $config . ';'
+            . 'if(!c||!c.paymentId||!c.statusUrl||!c.redirectUrl){return;}'
+            . 'var started=Date.now(),timer=null,busy=false;'
+            . 'function go(){window.location.replace(c.redirectUrl);}'
+            . 'function tick(){'
+            . 'if(busy){return;}'
+            . 'if(Date.now()-started>c.maxMs){if(timer){clearInterval(timer);}return;}'
+            . 'busy=true;'
+            . 'var url=c.statusUrl+(c.statusUrl.indexOf("?")>=0?"&":"?")+"payment_id="+encodeURIComponent(c.paymentId);'
+            . 'fetch(url,{credentials:"same-origin",cache:"no-store"})'
+            . '.then(function(r){return r.json();})'
+            . '.then(function(data){if(data&&data.ok&&data.paid){if(timer){clearInterval(timer);}'
+            . 'go();}busy=false;})'
+            . '.catch(function(){busy=false;});'
+            . '}'
+            . 'tick();'
+            . 'timer=setInterval(tick,c.intervalMs);'
+            . '})();</script>';
+    }
+
+    public static function buildAlreadyPaidRedirectHtml(string $redirectUrl): string
+    {
+        $redirectUrl = trim($redirectUrl);
+        if ($redirectUrl === '') {
+            $redirectUrl = '/';
+        }
+
+        return '<p>Оплата уже получена. Перенаправляем…</p>'
+            . '<script>window.location.replace(' . json_encode($redirectUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ');</script>';
+    }
+
+    /**
+     * Абсолютный URL endpoint опроса статуса.
+     */
+    public static function buildStatusPollUrl(?string $siteId = null): string
+    {
+        $path = PaymentStatusPollService::getStatusEndpointUrl();
+        if ($siteId !== null && $siteId !== '') {
+            $path .= (strpos($path, '?') !== false ? '&' : '?') . 'site_id=' . rawurlencode($siteId);
+        }
+
+        return PaidAccessCore::toAbsoluteUrl($path, $siteId);
     }
 
     private static function emitPaymentButtonStyles(): string

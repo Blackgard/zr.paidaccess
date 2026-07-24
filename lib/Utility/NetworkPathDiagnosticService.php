@@ -262,7 +262,7 @@ final class NetworkPathDiagnosticService
         $host = explode(':', $host)[0];
 
         if ($host === ''
-            || str_contains($host, '..')
+            || strpos($host, '..') !== false
             || $host[0] === '.'
             || substr($host, -1) === '.'
             || !preg_match('/^[a-z0-9.-]+$/', $host)

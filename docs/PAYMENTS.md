@@ -30,6 +30,18 @@ Gateway возвращает данные (`qrPayload`, `paymentUrl`, `autoRedir
 
 Если QR-картинка не отображается из-за внешнего сервиса, переключите режим на `payment_button`.
 
+## Редирект после успешной оплаты
+
+Опция `PAYMENT_SUCCESS_REDIRECT_URL` (Настройки → Процесс оплаты):
+
+| Значение | Поведение |
+| -------- | --------- |
+| пусто | редирект на главную `/` |
+| `/cabinet/` | редирект на путь сайта |
+| `https://…` | редирект на полный URL |
+
+На странице оплаты виджет опрашивает `/local/modules/zr.paidaccess/tools/payment_status.php` и после статуса `paid` выполняет `location.replace`. В Init T-Bank передаются `SuccessURL` / `FailURL` (возврат с формы банка).
+
 ## Настройка шлюза
 
 Раздел админки: `/bitrix/admin/zr_paidaccess_gateways.php`.

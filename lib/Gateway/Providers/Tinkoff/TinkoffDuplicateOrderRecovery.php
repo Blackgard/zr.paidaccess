@@ -63,7 +63,6 @@ final class TinkoffDuplicateOrderRecovery
             return null;
         }
 
-        $fallback = null;
         foreach ($payments as $payment) {
             if (!is_array($payment)) {
                 continue;
@@ -74,16 +73,12 @@ final class TinkoffDuplicateOrderRecovery
                 continue;
             }
 
-            if ($fallback === null) {
-                $fallback = $payment;
-            }
-
             $status = (string)($payment['Status'] ?? '');
             if (TinkoffPaymentUrlResolver::isAwaitingPayment($status)) {
                 return $payment;
             }
         }
 
-        return $fallback;
+        return null;
     }
 }

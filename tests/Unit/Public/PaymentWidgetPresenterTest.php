@@ -83,6 +83,39 @@ final class PaymentWidgetPresenterTest extends TestCase
         $this->assertStringNotContainsString('payment-button.css', $second);
     }
 
+    public function testBuildStatusPollerHtmlContainsPaymentIdAndUrls(): void
+    {
+        $html = PaymentWidgetPresenter::buildStatusPollerHtml(
+            42,
+            'https://example.test/local/modules/zr.paidaccess/tools/payment_status.php',
+            'https://example.test/'
+        );
+
+        $this->assertStringContainsString('data-zr-paidaccess-poll', $html);
+        $this->assertStringContainsString('"paymentId":42', $html);
+        $this->assertStringContainsString('payment_status.php', $html);
+        $this->assertStringContainsString('window.location.replace', $html);
+        $this->assertStringContainsString('После оплаты страница обновится автоматически', $html);
+    }
+
+    public function testBuildStatusPollerHtmlEmptyForInvalidPayment(): void
+    {
+        $this->assertSame('', PaymentWidgetPresenter::buildStatusPollerHtml(
+            0,
+            'https://example.test/status',
+            'https://example.test/'
+        ));
+    }
+
+    public function testBuildAlreadyPaidRedirectHtml(): void
+    {
+        $html = PaymentWidgetPresenter::buildAlreadyPaidRedirectHtml('https://example.test/cabinet/');
+
+        $this->assertStringContainsString('Оплата уже получена', $html);
+        $this->assertStringContainsString('https://example.test/cabinet/', $html);
+        $this->assertStringContainsString('window.location.replace', $html);
+    }
+
     private function resetPaymentButtonCssFlag(): void
     {
         $property = new \ReflectionProperty(PaymentWidgetPresenter::class, 'paymentButtonCssEmitted');

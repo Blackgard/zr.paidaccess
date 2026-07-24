@@ -54,6 +54,8 @@ class PaidAccessCore
     public const OPTION_BLOCK_PAGE_FOOTER_TEXT = 'BLOCK_PAGE_FOOTER_TEXT';
     /** Способ оплаты на сайте: qr_sbp | payment_button */
     public const OPTION_PAYMENT_WIDGET_MODE = 'PAYMENT_WIDGET_MODE';
+    /** URL редиректа после успешной оплаты (пусто = главная /) */
+    public const OPTION_PAYMENT_SUCCESS_REDIRECT_URL = 'PAYMENT_SUCCESS_REDIRECT_URL';
     /**
      * Поведение при ответе T-Bank Init: order_id уже существует (ErrorCode 8).
      * fail | ignore | reuse
@@ -114,6 +116,7 @@ class PaidAccessCore
     public const PAYMENT_WIDGET_MODE_QR_SBP = 'qr_sbp';
     public const PAYMENT_WIDGET_MODE_PAYMENT_BUTTON = 'payment_button';
     public const DEFAULT_PAYMENT_WIDGET_MODE = self::PAYMENT_WIDGET_MODE_QR_SBP;
+    public const DEFAULT_PAYMENT_SUCCESS_REDIRECT_URL = '';
     public const PAYMENT_DUPLICATE_ORDER_FAIL = 'fail';
     public const PAYMENT_DUPLICATE_ORDER_IGNORE = 'ignore';
     /** Привязать существующий платёж в T-Bank через CheckOrder */
@@ -478,6 +481,94 @@ class PaidAccessCore
     public static function isPaymentWidgetButtonMode(?string $siteId = null): bool
     {
         return self::getPaymentWidgetMode($siteId) === self::PAYMENT_WIDGET_MODE_PAYMENT_BUTTON;
+    }
+
+    /**
+     * Относительный или абсолютный URL после успешной оплаты.
+     * Пустая настройка → «/».
+     */
+    public static function getPaymentSuccessRedirectUrl(?string $siteId = null): string
+    {
+        $url = trim(self::getOptionByCode(
+            self::OPTION_PAYMENT_SUCCESS_REDIRECT_URL,
+            self::DEFAULT_PAYMENT_SUCCESS_REDIRECT_URL,
+            $siteId
+        ));
+
+        if ($url === '') {
+            return '/';
+        }
+
+        return $url;
+    }
+
+    /**
+     * Абсолютный URL для SuccessURL банка и JS-редиректа.
+     */
+    public static function getPaymentSuccessRedirectAbsoluteUrl(?string $siteId = null): string
+    {
+        return self::toAbsoluteUrl(self::getPaymentSuccessRedirectUrl($siteId), $siteId);
+    }
+
+    /**
+     * Абсолютный URL текущей страницы (для FailURL).
+     */
+    public static function getCurrentPageAbsoluteUrl(): string
+    {
+        $requestUri = '';
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $requestUri = (string)$_SERVER['REQUEST_URI'];
+        }
+        if ($requestUri === '') {
+            $requestUri = '/';
+        }
+
+        return self::toAbsoluteUrl($requestUri);
+    }
+
+    /**
+     * Приводит путь или URL к абсолютному http(s) URL.
+     */
+    public static function toAbsoluteUrl(string $url, ?string $siteId = null): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            $url = '/';
+        }
+
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+
+        if ($url[0] !== '/') {
+            $url = '/' . $url;
+        }
+
+        $host = '';
+        if (isset($_SERVER['HTTP_HOST'])) {
+            $host = trim((string)$_SERVER['HTTP_HOST']);
+        }
+        if ($host === '' && isset($_SERVER['SERVER_NAME'])) {
+            $host = trim((string)$_SERVER['SERVER_NAME']);
+        }
+        if ($host === '') {
+            $host = 'localhost';
+        }
+
+        $https = false;
+        if (!empty($_SERVER['HTTPS']) && (string)$_SERVER['HTTPS'] !== 'off') {
+            $https = true;
+        } elseif (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443') {
+            $https = true;
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])
+            && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https'
+        ) {
+            $https = true;
+        }
+
+        $scheme = $https ? 'https' : 'http';
+
+        return $scheme . '://' . $host . $url;
     }
 
     public static function getPaymentDuplicateOrderPolicy(?string $siteId = null): string

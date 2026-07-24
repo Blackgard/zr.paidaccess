@@ -41,6 +41,13 @@ final class ModuleOptionsStructureTest extends TestCase
         );
     }
 
+    public function testPaymentSuccessRedirectUrlIsInPaymentFlowGroup(): void
+    {
+        $options = $this->findGroupOptions(ModuleOptionsStructure::getGroups(), 'payment_flow');
+
+        $this->assertArrayHasKey(PaidAccessCore::OPTION_PAYMENT_SUCCESS_REDIRECT_URL, $options);
+    }
+
     public function testUserMessageRegistryMatchesStructure(): void
     {
         $codes = ModuleOptionsProvider::getUserMessageOptionCodes();
