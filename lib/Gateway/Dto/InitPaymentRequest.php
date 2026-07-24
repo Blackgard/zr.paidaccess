@@ -39,6 +39,12 @@ class InitPaymentRequest
      */
     public $paymentWidgetMode = '';
 
+    /** @var string SuccessURL для банка (абсолютный) */
+    public $successUrl = '';
+
+    /** @var string FailURL для банка (абсолютный) */
+    public $failUrl = '';
+
     public function __construct(
         $orderId,
         $amount,

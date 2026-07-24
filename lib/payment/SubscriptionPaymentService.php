@@ -230,8 +230,10 @@ class SubscriptionPaymentService
             return;
         }
 
-        if (PaymentStatus::isPaidLike((string)$modulePayment['STATUS'])) {
-            echo '<p>Оплата уже получена. Обновите страницу.</p>';
+        if (PaymentStatus::grantsAccess((string)$modulePayment['STATUS'])) {
+            echo PaymentWidgetPresenter::buildAlreadyPaidRedirectHtml(
+                PaidAccessCore::getPaymentSuccessRedirectAbsoluteUrl($siteId)
+            );
 
             return;
         }
@@ -265,30 +267,6 @@ class SubscriptionPaymentService
 
             if (
                 !$result->success
-                && $gateway instanceof StaleSessionRecoverableGatewayInterface
-                && $gateway->isStalePaymentSessionFailure($result)
-            ) {
-                $recycledPaymentId = self::recycleStalePendingPayment(
-                    $modulePaymentId,
-                    $modulePayment,
-                    $gateway,
-                    $siteId
-                );
-                if ($recycledPaymentId !== null && $recycledPaymentId !== $modulePaymentId) {
-                    $modulePaymentId = $recycledPaymentId;
-                    $modulePayment = PaymentRepository::getById($modulePaymentId) ?? $modulePayment;
-                    $gatewayPaymentId = (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? '');
-                    if ($gatewayPaymentId !== '') {
-                        $result = $gateway->fetchPaymentForm(
-                            $gatewayPaymentId,
-                            self::buildFetchFormRequest($modulePayment, $widgetMode)
-                        );
-                    }
-                }
-            }
-
-            if (
-                !$result->success
                 && $gateway instanceof DuplicateOrderRecoverableGatewayInterface
                 && $gateway->isDuplicateOrderError($result)
                 && self::handleDuplicateOrderIdError(
@@ -318,6 +296,11 @@ class SubscriptionPaymentService
                     }
 
                     echo $html;
+                    echo PaymentWidgetPresenter::buildStatusPollerHtml(
+                        $modulePaymentId,
+                        PaymentWidgetPresenter::buildStatusPollUrl($siteId),
+                        PaidAccessCore::getPaymentSuccessRedirectAbsoluteUrl($siteId)
+                    );
 
                     return;
                 }
@@ -420,7 +403,14 @@ class SubscriptionPaymentService
                 $gateway instanceof StaleSessionRecoverableGatewayInterface
                 && $gateway->isStalePaymentSessionFailure($result)
             ) {
-                self::closeStalePayment($modulePaymentId, $modulePayment, $errorMessage, $siteId);
+                self::markPaymentFailed(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $errorMessage,
+                    $siteId,
+                    'payment_init_stale_failed',
+                    $result->getHttpCode()
+                );
                 throw new \RuntimeException($errorMessage);
             }
 
@@ -442,86 +432,6 @@ class SubscriptionPaymentService
             'GATEWAY_PAYMENT_ID' => $result->gatewayPaymentId,
             'GATEWAY_PAYMENT_URL' => $result->paymentUrl,
         ]);
-    }
-
-    /**
-     * @param array<string, mixed> $modulePayment
-     * @return int|null ID нового pending-платежа или null, если пересоздание не выполнено
-     */
-    private static function recycleStalePendingPayment(
-        int $modulePaymentId,
-        array $modulePayment,
-        $gateway,
-        ?string $siteId
-    ): ?int {
-        if ((string)($modulePayment['STATUS'] ?? '') !== PaymentStatus::PENDING) {
-            return null;
-        }
-
-        if (!$gateway instanceof StaleSessionRecoverableGatewayInterface
-            || !PaymentCancellationService::canCancel($modulePayment)
-        ) {
-            return null;
-        }
-
-        try {
-            PaymentCancellationService::cancel($modulePaymentId);
-            $newPaymentId = self::preparePayment((int)$modulePayment['USER_ID'], $siteId);
-        } catch (\Throwable $e) {
-            self::closeStalePayment($modulePaymentId, $modulePayment, $e->getMessage(), $siteId);
-
-            try {
-                $newPaymentId = self::preparePayment((int)$modulePayment['USER_ID'], $siteId);
-            } catch (\Throwable $retryException) {
-                ModuleEventLogService::error(
-                    'payment_stale_session_recycle_failed',
-                    $retryException->getMessage(),
-                    ['paymentId' => $modulePaymentId, 'previousError' => $e->getMessage()],
-                    $modulePaymentId,
-                    (int)($modulePayment['USER_ID'] ?? 0),
-                    $siteId
-                );
-
-                return null;
-            }
-        }
-
-        ModuleEventLogService::info(
-            'payment_stale_session_recycled',
-            'Просроченная сессия банка закрыта, создан новый pending-платёж',
-            [
-                'previousPaymentId' => $modulePaymentId,
-                'newPaymentId' => $newPaymentId,
-                'orderId' => (string)($modulePayment['ORDER_ID'] ?? ''),
-            ],
-            $newPaymentId,
-            (int)$modulePayment['USER_ID'],
-            $siteId
-        );
-
-        return $newPaymentId;
-    }
-
-    /**
-     * @param array<string, mixed> $modulePayment
-     */
-    private static function closeStalePayment(
-        int $paymentId,
-        array $modulePayment,
-        string $reason,
-        ?string $siteId
-    ): void {
-        if (PaymentCancellationService::canCancel($modulePayment)) {
-            try {
-                PaymentCancellationService::cancel($paymentId);
-
-                return;
-            } catch (\Throwable $e) {
-                $reason = trim($reason . ' ' . $e->getMessage());
-            }
-        }
-
-        PaymentCancellationService::closeStaleSession($paymentId, $reason, $siteId);
     }
 
     /**
@@ -654,7 +564,7 @@ class SubscriptionPaymentService
             $phone = $user['PERSONAL_PHONE'] ?: null;
         }
 
-        return new InitPaymentRequest(
+        $request = new InitPaymentRequest(
             (string)$modulePayment['ORDER_ID'],
             (float)$modulePayment['AMOUNT'],
             (string)$modulePayment['CURRENCY'],
@@ -663,6 +573,16 @@ class SubscriptionPaymentService
             $email,
             $phone
         );
+
+        return self::applyReturnUrls($request);
+    }
+
+    private static function applyReturnUrls(InitPaymentRequest $request, ?string $siteId = null): InitPaymentRequest
+    {
+        $request->successUrl = PaidAccessCore::getPaymentSuccessRedirectAbsoluteUrl($siteId);
+        $request->failUrl = PaidAccessCore::getCurrentPageAbsoluteUrl();
+
+        return $request;
     }
 
     /**

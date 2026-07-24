@@ -20,6 +20,16 @@ class TinkoffReceiptBuilder
             'Description' => $description,
         ];
 
+        $successUrl = trim((string)$request->successUrl);
+        if ($successUrl !== '') {
+            $body['SuccessURL'] = $successUrl;
+        }
+
+        $failUrl = trim((string)$request->failUrl);
+        if ($failUrl !== '') {
+            $body['FailURL'] = $failUrl;
+        }
+
         if ($config->getLanguage() === 'en') {
             $body['Language'] = 'en';
         }

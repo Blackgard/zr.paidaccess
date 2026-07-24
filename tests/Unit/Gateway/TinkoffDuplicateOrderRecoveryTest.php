@@ -56,4 +56,31 @@ final class TinkoffDuplicateOrderRecoveryTest extends TestCase
         $this->assertFalse($result->success);
         $this->assertStringContainsString('Not found', $result->errorMessage);
     }
+
+    public function testRecoverFailsWhenOnlyStalePaymentsExist(): void
+    {
+        $client = $this->createMock(TinkoffApiClient::class);
+        $client->method('checkOrder')->willReturn([
+            'Success' => true,
+            'OrderId' => 'PA-1-2026-06',
+            'Payments' => [
+                [
+                    'PaymentId' => '100',
+                    'Status' => 'CANCELED',
+                ],
+                [
+                    'PaymentId' => '200',
+                    'Status' => 'DEADLINE_EXPIRED',
+                ],
+            ],
+        ]);
+
+        $result = TinkoffDuplicateOrderRecovery::recover(
+            $client,
+            new InitPaymentRequest('PA-1-2026-06', 1430.0, 'RUB', 'Подписка', 1)
+        );
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('нет активного платежа', $result->errorMessage);
+    }
 }

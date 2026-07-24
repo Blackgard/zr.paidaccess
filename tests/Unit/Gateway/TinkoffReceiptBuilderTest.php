@@ -97,6 +97,32 @@ final class TinkoffReceiptBuilderTest extends TestCase
         $this->assertSame(140, mb_strlen((string)$body['Description']));
     }
 
+    public function testInitIncludesSuccessAndFailUrlsWhenSet(): void
+    {
+        $request = new InitPaymentRequest('PA-5-2026-06-08', 100.0, 'RUB', 'Подписка', 1);
+        $request->successUrl = 'https://example.test/';
+        $request->failUrl = 'https://example.test/pay/';
+
+        $body = TinkoffReceiptBuilder::buildInitBody($request, $this->createConfig([
+            'enable_taxation' => '0',
+        ]));
+
+        $this->assertSame('https://example.test/', $body['SuccessURL']);
+        $this->assertSame('https://example.test/pay/', $body['FailURL']);
+    }
+
+    public function testInitOmitsReturnUrlsWhenEmpty(): void
+    {
+        $request = new InitPaymentRequest('PA-6-2026-06-08', 100.0, 'RUB', 'Подписка', 1);
+
+        $body = TinkoffReceiptBuilder::buildInitBody($request, $this->createConfig([
+            'enable_taxation' => '0',
+        ]));
+
+        $this->assertArrayNotHasKey('SuccessURL', $body);
+        $this->assertArrayNotHasKey('FailURL', $body);
+    }
+
     /**
      * @param array<string, mixed> $options
      */

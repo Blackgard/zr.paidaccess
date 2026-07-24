@@ -98,6 +98,7 @@ return  [
   'Zr\\PaidAccess\\PublicUi\\ModeratorPaymentEditService' => 'lib/Public/ModeratorPaymentEditService.php',
   'Zr\\PaidAccess\\PublicUi\\PanelSectionRegistry' => 'lib/Public/PanelSectionRegistry.php',
   'Zr\\PaidAccess\\PublicUi\\PaymentWidgetPresenter' => 'lib/Public/PaymentWidgetPresenter.php',
+  'Zr\\PaidAccess\\PublicUi\\PaymentStatusPollService' => 'lib/Public/PaymentStatusPollService.php',
   'Zr\\PaidAccess\\PublicUi\\PayBlockPageRenderer' => 'lib/Public/PayBlockPageRenderer.php',
   'Zr\\PaidAccess\\PublicUi\\DocumentConsentPageRenderer' => 'lib/Public/DocumentConsentPageRenderer.php',
   'Zr\\PaidAccess\\Gateway\\GatewayTestService' => 'lib/Gateway/GatewayTestService.php',

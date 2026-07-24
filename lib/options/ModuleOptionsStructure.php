@@ -283,6 +283,17 @@ final class ModuleOptionsStructure
                         . 'Кнопка T-Bank — ссылка на классическую платёжную форму банка. '
                         . 'Автоперенаправление на форму банка настраивается в карточке шлюза T-Bank.',
                 ],
+                'PAYMENT_SUCCESS_REDIRECT_URL' => [
+                    'TITLE' => 'URL после успешной оплаты',
+                    'TYPE' => 'text',
+                    'DEFAULT' => PaidAccessCore::DEFAULT_PAYMENT_SUCCESS_REDIRECT_URL,
+                    'SIZE' => 50,
+                ],
+                'NOTE_PAYMENT_SUCCESS_REDIRECT_URL' => [
+                    'TYPE' => 'note',
+                    'TEXT' => 'Куда перенаправить пользователя после успешной оплаты (QR или кнопка T-Bank). '
+                        . 'Пусто = главная страница (`/`). Допускается путь `/cabinet/` или полный URL `https://…`.',
+                ],
                 'PAYMENT_DUPLICATE_ORDER_POLICY' => [
                     'TITLE' => 'Дубликат order_id в T-Bank (ошибка 8)',
                     'TYPE' => 'selectbox',
