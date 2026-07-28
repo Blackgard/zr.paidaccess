@@ -306,6 +306,24 @@ class SubscriptionPaymentService
                 }
             }
 
+            if (
+                !$result->success
+                && $gateway instanceof StaleSessionRecoverableGatewayInterface
+                && $gateway->isStalePaymentSessionFailure($result)
+            ) {
+                $replacementPaymentId = self::recreatePaymentAfterStaleWidgetSession(
+                    $modulePaymentId,
+                    $modulePayment,
+                    $siteId
+                );
+
+                if ($replacementPaymentId > 0 && $replacementPaymentId !== $modulePaymentId) {
+                    self::renderPaymentWidget($replacementPaymentId, $siteId);
+
+                    return;
+                }
+            }
+
             $errorMessage = $result->errorMessage ?: 'Не удалось получить форму оплаты';
             $httpCode = $result->getHttpCode();
             Logger::warning(
@@ -346,6 +364,45 @@ class SubscriptionPaymentService
             );
             PaymentPageErrorRenderer::render($siteId);
         }
+    }
+
+    /**
+     * Закрывает локально протухшую банковскую сессию и создаёт новый pending-платёж.
+     *
+     * @param array<string, mixed> $modulePayment
+     */
+    private static function recreatePaymentAfterStaleWidgetSession(
+        int $modulePaymentId,
+        array $modulePayment,
+        ?string $siteId
+    ): int {
+        $userId = (int)($modulePayment['USER_ID'] ?? 0);
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        PaymentCancellationService::closeStaleSession(
+            $modulePaymentId,
+            'Просроченная сессия банка закрыта после повторного открытия страницы оплаты',
+            $siteId
+        );
+
+        $replacementPaymentId = self::preparePayment($userId, $siteId);
+        ModuleEventLogService::info(
+            'payment_stale_session_recreated',
+            'Создан новый платёж после DEADLINE_EXPIRED/просроченной банковской сессии',
+            [
+                'previousPaymentId' => $modulePaymentId,
+                'replacementPaymentId' => $replacementPaymentId,
+                'gatewayPaymentId' => (string)($modulePayment['GATEWAY_PAYMENT_ID'] ?? ''),
+                'orderId' => (string)($modulePayment['ORDER_ID'] ?? ''),
+            ],
+            $replacementPaymentId > 0 ? $replacementPaymentId : $modulePaymentId,
+            $userId,
+            $siteId
+        );
+
+        return $replacementPaymentId;
     }
 
     /**
